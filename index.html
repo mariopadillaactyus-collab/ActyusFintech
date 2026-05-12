@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trident Fund I — Portfolio Manager</title>
+ 
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+ 
+<!-- ═══════════════════════════════════════════════════════════
+     FIREBASE SDK (compat mode — más sencillo para scripts inline)
+     ═══════════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+ 
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f8f6;--card:#fff;--bd:#e4e3de;--bd2:#ccc9c2;
+  --tx:#1a1a18;--mu:#6b6966;--hi:#a0a09a;
+  --B:#185fa5;--Bbg:#e6f1fb;--Btx:#0c447c;
+  --G:#3b6d11;--Gbg:#eaf3de;--Gtx:#27500a;
+  --A:#854f0b;--Abg:#faeeda;--Atx:#633806;
+  --R:#a32d2d;--Rbg:#fcebeb;--Rtx:#791f1f;
+  --T:#0f6e56;--Tbg:#e1f5ee;--Ttx:#085041;
+  --P:#534ab7;--Pbg:#eeedfe;--Ptx:#3c3489;
+  --r4:4px;--r8:8px;--r12:12px;
+  --font:'Segoe UI',system-ui,sans-serif;
+  --mono:'Courier New',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);font-size:13px}
+input,select,textarea{font-family:var(--font);font-size:13px}
+ 
+/* ── LOADING OVERLAY ── */
+#overlay{
+  position:fixed;inset:0;background:rgba(248,248,246,.95);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:9999;gap:14px;transition:opacity .3s;
+}
+#overlay.hidden{opacity:0;pointer-events:none}
+.spinner{width:30px;height:30px;border:3px solid var(--bd);border-top-color:var(--B);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#overlay p{font-size:12px;color:var(--mu);font-family:var(--mono)}
+ 
+/* ── CONNECTION DOT ── */
+.conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .4s}
+.conn-dot.ok{background:#3b6d11}
+.conn-dot.err{background:#a32d2d}
+.conn-dot.wait{background:#ccc9c2;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+ 
+/* ── SEED BANNER ── */
+#seed-banner{
+  display:none;
+  background:var(--Abg);border:1px solid #d4933a;border-radius:var(--r8);
+  padding:10px 14px;margin-bottom:14px;
+  align-items:center;gap:10px;font-size:12px;color:var(--Atx);
+}
+#seed-banner.show{display:flex}
+#seed-banner strong{font-weight:600}
+#seed-banner .btn-seed{
+  margin-left:auto;padding:5px 12px;background:var(--A);color:#fff;
+  border:none;border-radius:var(--r4);cursor:pointer;font-size:12px;font-family:var(--font);
+  white-space:nowrap;
+}
+#seed-banner .btn-seed:hover{background:var(--Atx)}
+ 
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-rows:52px 1fr;height:100vh}
+.bar{background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:0 18px;position:sticky;top:0;z-index:100}
+.bar h1{font-size:14px;font-weight:600}
+.bar .sub{font-size:10px;color:var(--mu);font-family:var(--mono);margin-bottom:1px}
+.bar .sp{flex:1}
+.ds{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--bd2);border-radius:var(--r8);padding:4px 10px}
+.ds label{font-size:10px;color:var(--mu);font-family:var(--mono)}
+.ds select{border:none;background:transparent;font-size:13px;font-weight:500;color:var(--tx);cursor:pointer;outline:none;padding:0}
+.body{display:grid;grid-template-columns:192px 1fr;overflow:hidden}
+.side{background:var(--card);border-right:1px solid var(--bd);padding:10px 0;overflow-y:auto}
+.nb{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:12px;color:var(--mu);cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.nb:hover{background:var(--bg);color:var(--tx)}
+.nb.on{background:var(--Bbg);color:var(--Btx);font-weight:500}
+.nb.add{color:var(--Btx);font-weight:500;margin-top:4px;border-top:1px solid var(--bd);padding-top:10px}
+.nb .ic{width:16px;text-align:center;font-size:13px}
+.ndiv{height:1px;background:var(--bd);margin:6px 10px}
+.main{overflow-y:auto;padding:18px}
+ 
+/* KPI CARDS */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
+.kc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r8);padding:10px 12px}
+.kc .lbl{font-size:9px;color:var(--mu);font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;margin-bottom:2px}
+.kc .val{font-size:20px;font-weight:500;font-family:var(--mono);line-height:1.1}
+.kc .sub{font-size:10px;color:var(--mu);margin-top:2px}
+.kc.B .val{color:var(--Btx)}.kc.G .val{color:var(--Gtx)}.kc.A .val{color:var(--Atx)}.kc.R .val{color:var(--Rtx)}
+ 
+/* TABLES */
+.tw{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);overflow:hidden;margin-bottom:16px}
+.th{padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tt{font-size:10px;font-weight:500;font-family:var(--mono);color:var(--mu);letter-spacing:.07em;text-transform:uppercase}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:500;color:var(--mu);text-align:left;padding:5px 9px;border-bottom:1px solid var(--bd);background:var(--bg);white-space:nowrap;position:sticky;top:0;z-index:1}
+th.r,td.r{text-align:right}
+td{padding:5px 9px;border-bottom:1px solid var(--bd);font-size:12px;white-space:nowrap;color:var(--tx)}
+td.mo{font-family:var(--mono);font-size:11px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f5f4f1}
+.cn{font-weight:500}.cs{font-size:10px;color:var(--mu)}
+.sx{overflow-x:auto}
+ 
+/* BADGES */
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.bG{background:var(--Gbg);color:var(--Gtx)}.bR{background:var(--Rbg);color:var(--Rtx)}
+.bT{background:var(--Tbg);color:var(--Ttx)}.bA{background:var(--Abg);color:var(--Atx)}
+.bP{background:var(--Pbg);color:var(--Ptx)}.bB{background:var(--Bbg);color:var(--Btx)}
+.bN{background:#f0ede8;color:#5f5e5a}
+.mc{color:var(--Gtx)}.md{color:var(--Rtx)}.mn{color:var(--mu)}
+ 
+/* CHARTS */
+.cg{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
+.cb{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);padding:12px}
+.ct{font-size:10px;color:var(--mu);font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px}
+ 
+/* FORM VIEWS */
+.view{display:none}.view.on{display:block}
+.ftitle{font-size:16px;font-weight:500;margin-bottom:4px}
+.fsub{font-size:12px;color:var(--mu);margin-bottom:20px}
+ 
+/* FORM */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.fgrid.w1{grid-template-columns:1fr}.fgrid.w3{grid-template-columns:1fr 1fr 1fr}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:500;color:var(--mu)}
+.fg input,.fg select,.fg textarea{padding:7px 10px;border:1px solid var(--bd2);border-radius:var(--r4);background:var(--card);color:var(--tx);outline:none;transition:border .12s;height:34px}
+.fg textarea{height:auto;resize:vertical}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--B)}
+.fg .hint{font-size:10px;color:var(--hi)}
+.fcard{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);padding:16px;margin-bottom:14px}
+.fsec{font-size:11px;font-weight:500;color:var(--mu);font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bd)}
+.ftype-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px}
+.ftype-btn{padding:10px 12px;border:1px solid var(--bd2);border-radius:var(--r8);cursor:pointer;background:var(--card);text-align:left;transition:all .12s}
+.ftype-btn:hover{border-color:var(--B);background:var(--Bbg)}
+.ftype-btn.sel{border:2px solid var(--B);background:var(--Bbg)}
+.ftype-btn .ico{font-size:18px;margin-bottom:4px}
+.ftype-btn .nm{font-size:12px;font-weight:500;color:var(--tx)}
+.ftype-btn .ds{font-size:10px;color:var(--mu);background:none;border:none;padding:0;display:block;margin-top:2px}
+.preview{background:var(--Bbg);border:1px solid var(--B);border-radius:var(--r8);padding:12px;margin-bottom:14px}
+.preview .ptitle{font-size:11px;font-weight:500;color:var(--Btx);font-family:var(--mono);margin-bottom:8px}
+.preview table{background:transparent}
+.preview td{background:transparent!important;font-size:11px;color:var(--Btx);border-bottom:1px solid rgba(24,95,165,.12);padding:3px 6px}
+.preview tr:last-child td{border-bottom:none}
+.preview td:first-child{color:var(--mu);width:120px}
+.btn{padding:8px 16px;border-radius:var(--r4);cursor:pointer;font-size:13px;border:1px solid var(--bd2);background:var(--card);color:var(--tx)}
+.btn:hover{background:var(--bg)}
+.btn.pri{background:var(--B);border-color:var(--B);color:#fff}
+.btn.pri:hover{background:#0c447c}
+.btn.pri:disabled{background:#7faacc;border-color:#7faacc;cursor:not-allowed}
+.btn.dan{background:var(--R);border-color:var(--R);color:#fff}
+.factions{display:flex;gap:8px;align-items:center;padding-top:8px}
+.ferr{color:var(--Rtx);font-size:11px;background:var(--Rbg);padding:6px 10px;border-radius:var(--r4);display:none}
+.ferr.show{display:block}
+.fsaved{color:var(--Gtx);font-size:11px;background:var(--Gbg);padding:6px 10px;border-radius:var(--r4);display:none}
+.fsaved.show{display:block}
+ 
+/* CO DETAIL */
+.cohead{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:14px}
+.coav{width:44px;height:44px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;flex-shrink:0}
+.dg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.dc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r8);padding:10px}
+.dc .dl{font-size:9px;color:var(--mu);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.dc .dv{font-size:15px;font-weight:500;font-family:var(--mono)}
+ 
+/* FILTERS */
+.filt{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.filt input,.filt select{height:28px;padding:0 8px;border:1px solid var(--bd2);border-radius:var(--r4);font-size:11px;background:var(--card);color:var(--tx);outline:none}
+.filt .cnt{font-size:10px;color:var(--mu);margin-left:auto;font-family:var(--mono)}
+.tag{border:1px solid var(--bd2);border-radius:3px;padding:2px 7px;font-size:11px;color:var(--mu);background:var(--card)}
+ 
+/* ASSET TYPE LEGEND */
+.aleg{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--mu);margin-bottom:12px;padding:8px 12px;background:var(--card);border:1px solid var(--bd);border-radius:var(--r8)}
+.aleg span{display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+ 
+/* NOTE EXPLAIN BOX */
+.explain{background:#fffbf0;border:1px solid #f0c878;border-radius:var(--r8);padding:10px 12px;margin-bottom:12px;font-size:11px;color:#5c3d00}
+.explain strong{font-weight:600}
+ 
+.pbar{height:3px;background:var(--bd);border-radius:2px;overflow:hidden;margin-top:3px}
+.pbf{height:100%;background:var(--B);border-radius:2px}
+</style>
+</head>
+<body>
+ 
+<!-- ═══ LOADING OVERLAY ═══ -->
+<div id="overlay">
+  <div class="spinner"></div>
+  <p id="overlay-msg">Conectando con Firestore…</p>
+</div>
+ 
+<div class="app">
+ 
+<div class="bar">
+  <div>
+    <div class="sub">TRIDENT FUND I · IBEROAMÉRICA FINTECH</div>
+    <h1>Portfolio Manager</h1>
+  </div>
+  <div class="sp"></div>
+  <div id="bar-kpis" style="display:flex;gap:18px;font-family:var(--mono);font-size:11px"></div>
+  <!-- Connection status -->
+  <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--mu)">
+    <div class="conn-dot wait" id="conn-dot"></div>
+    <span id="conn-label">—</span>
+  </div>
+  <div class="ds">
+    <label>CORTE</label>
+    <select id="sM"></select>
+    <select id="sY"></select>
+  </div>
+</div>
+ 
+<div class="body">
+<div class="side">
+  <button class="nb on" data-v="portfolio"><span class="ic">◈</span> Portfolio</button>
+  <button class="nb" data-v="metrics"><span class="ic">◉</span> Métricas</button>
+  <button class="nb" data-v="company"><span class="ic">◎</span> Vista empresa</button>
+  <div class="ndiv"></div>
+  <button class="nb" data-v="transactions"><span class="ic">≡</span> Transacciones</button>
+  <button class="nb add" data-v="newtxn"><span class="ic">+</span> Nueva transacción</button>
+</div>
+ 
+<div class="main">
+ 
+<!-- PORTFOLIO -->
+<div class="view on" id="view-portfolio">
+  <!-- Seed banner (solo aparece la primera vez) -->
+  <div id="seed-banner">
+    <span>⚠ Firestore está vacío. ¿Importar las <strong>transacciones base</strong> (datos históricos)?</span>
+    <button class="btn-seed" onclick="seedFirestore()">Importar datos base →</button>
+  </div>
+  <div id="pkpis" class="kgrid"></div>
+  <div class="aleg">
+    <span><span class="dot" style="background:var(--G)"></span>Equity activo</span>
+    <span><span class="dot" style="background:var(--A)"></span>Nota conv. / SAFE</span>
+    <span><span class="dot" style="background:var(--P)"></span>Fondo (NAV)</span>
+    <span><span class="dot" style="background:var(--T)"></span>Exit realizado</span>
+    <span><span class="dot" style="background:var(--R)"></span>Write-off</span>
+  </div>
+  <div class="tw">
+    <div class="th">
+      <span class="tt">Posiciones</span>
+      <div class="filt">
+        <input type="text" id="ps" placeholder="Buscar..." style="width:130px">
+        <select id="pf">
+          <option value="">Todos</option>
+          <option value="equity">Equity</option>
+          <option value="note">Nota conv.</option>
+          <option value="fund">Fondo</option>
+          <option value="exit">Exit</option>
+          <option value="wo">Write-off</option>
+        </select>
+        <span class="cnt" id="pcnt"></span>
+      </div>
+    </div>
+    <div class="sx">
+      <table>
+        <thead><tr>
+          <th>Empresa</th><th>País</th><th>Sector</th>
+          <th class="r">Coste (€)</th><th class="r">Valor (€)</th>
+          <th class="r">P&G (€)</th><th class="r">MOIC</th>
+          <th class="r">Ownership</th><th>Tipo activo</th>
+        </tr></thead>
+        <tbody id="ptb"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="cg">
+    <div class="cb"><div class="ct">Por geografía</div><div style="position:relative;height:190px"><canvas id="gc"></canvas></div></div>
+    <div class="cb"><div class="ct">Por sector</div><div style="position:relative;height:190px"><canvas id="sc"></canvas></div></div>
+  </div>
+  <div style="font-size:10px;color:var(--hi);text-align:right;font-family:var(--mono)" id="pfooter"></div>
+</div>
+ 
+<!-- METRICS -->
+<div class="view" id="view-metrics">
+  <div id="mkpis" class="kgrid"></div>
+  <div class="cg">
+    <div class="cb"><div class="ct">NAV vs Capital llamado</div><div style="position:relative;height:210px"><canvas id="nvc"></canvas></div></div>
+    <div class="cb"><div class="ct">Evolución TIR</div><div style="position:relative;height:210px"><canvas id="irc"></canvas></div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="tw">
+      <div class="th"><span class="tt">Histórico trimestral</span></div>
+      <table id="qt"><thead><tr>
+        <th>Trimestre</th><th class="r">NAV</th><th class="r">Capital</th>
+        <th class="r">MOIC</th><th class="r">TIR bruta</th><th class="r">TIR neta</th>
+      </tr></thead><tbody id="qtb"></tbody></table>
+    </div>
+    <div class="cb" style="margin:0">
+      <div class="ct">Composición por coste</div>
+      <div style="position:relative;height:180px"><canvas id="cc"></canvas></div>
+      <div id="ccleg" style="display:flex;flex-wrap:wrap;gap:3px 10px;margin-top:6px;font-size:10px;color:var(--mu)"></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- COMPANY -->
+<div class="view" id="view-company">
+  <div class="filt" style="margin-bottom:10px">
+    <input type="text" id="cos" placeholder="Buscar empresa..." style="width:160px">
+    <select id="cof"><option value="">Todos los países</option></select>
+  </div>
+  <div id="cosel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+  <div id="codet"></div>
+</div>
+ 
+<!-- TRANSACTIONS -->
+<div class="view" id="view-transactions">
+  <div class="tw">
+    <div class="th">
+      <span class="tt">Registro completo</span>
+      <div class="filt">
+        <input type="text" id="ts" placeholder="Buscar..." style="width:130px">
+        <select id="tty">
+          <option value="">Todos los tipos</option>
+          <option value="eq">Equity</option>
+          <option value="cn">Nota / SAFE abierta</option>
+          <option value="cc">Nota convertida</option>
+          <option value="val">Valoración</option>
+          <option value="wo">Write-off</option>
+          <option value="sale">Exit / venta</option>
+          <option value="fund">Fondo inv.</option>
+          <option value="dist">Fondo distrib.</option>
+        </select>
+        <span class="cnt" id="tcnt"></span>
+      </div>
+    </div>
+    <div class="sx">
+    <table>
+      <thead><tr>
+        <th>Empresa</th><th>Fecha</th><th>Tipo</th><th>Moneda</th>
+        <th class="r">Importe LC</th><th class="r">Importe €</th>
+        <th class="r">Acciones</th><th class="r">PPS (LC)</th>
+        <th class="r">FD shares</th><th class="r">Post-money</th>
+        <th class="r">FX</th><th>Notas</th>
+      </tr></thead>
+      <tbody id="ttb"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+ 
+<!-- NEW TRANSACTION -->
+<div class="view" id="view-newtxn">
+  <div class="ftitle">Nueva transacción</div>
+  <div class="fsub">Registra una inversión, valoración, exit, write-off o movimiento de fondo</div>
+ 
+  <div class="fcard">
+    <div class="fsec">1 — Empresa y fecha</div>
+    <div class="fgrid">
+      <div class="fg">
+        <label>Empresa</label>
+        <select id="fco">
+          <option value="">— selecciona o escribe nombre —</option>
+          <option value="__new__">+ Nueva empresa...</option>
+        </select>
+      </div>
+      <div class="fg" id="newco-row" style="display:none">
+        <label>Nombre de la nueva empresa</label>
+        <input type="text" id="fnewco" placeholder="Ej: Startup XYZ">
+      </div>
+      <div class="fg">
+        <label>Fecha de la transacción</label>
+        <input type="date" id="fdate">
+      </div>
+      <div class="fg">
+        <label>Moneda</label>
+        <select id="fcur">
+          <option value="EUR">EUR</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Tipo de cambio USD/EUR <span class="hint">(auto)</span></label>
+        <input type="number" id="ffx" step="0.0001" placeholder="ej: 1.0850">
+        <span class="hint" id="fxhint"></span>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="fcard">
+    <div class="fsec">2 — Tipo de transacción</div>
+    <div class="explain">
+      <strong>Equity:</strong> compra de acciones directas.<br>
+      <strong>Nota convertible / SAFE:</strong> deuda que convierte a equity en una ronda futura.<br>
+      <strong>Fondo (LP):</strong> inversión en un vehículo externo, trackeo por NAV.
+    </div>
+    <div class="ftype-grid" id="ftypegrid"></div>
+  </div>
+ 
+  <div class="fcard" id="ffields" style="display:none">
+    <div class="fsec" id="ffsec">3 — Detalles de la transacción</div>
+    <div id="fdynamic"></div>
+  </div>
+ 
+  <div class="preview" id="fprev" style="display:none">
+    <div class="ptitle">PREVISUALIZACIÓN — CÓMO QUEDARÁ LA POSICIÓN</div>
+    <div id="fprevtable"></div>
+  </div>
+ 
+  <div class="factions">
+    <button class="btn pri" id="fsave">Guardar en Firestore</button>
+    <button class="btn" id="freset">Limpiar</button>
+    <span class="ferr" id="ferr"></span>
+    <span class="fsaved" id="fsaved"></span>
+  </div>
+</div>
+ 
+</div><!-- /main -->
+</div><!-- /body -->
+</div><!-- /app -->
+ 
+<script>
+// ════════════════════════════════════════════════════════════════
+// ██████████████████████████████████████████████████████████████
+//
+//   FIREBASE CONFIG
+//   ──────────────────────────────────────────────────────────
+//   1. Ve a https://console.firebase.google.com
+//   2. Crea un proyecto → "Añadir app web"
+//   3. Copia tu firebaseConfig aquí
+//   4. En Firestore → Reglas, pon temporalmente:
+//        allow read, write: if true;
+//      (luego añade autenticación para producción)
+//
+// ██████████████████████████████████████████████████████████████
+const FB_CONFIG = {
+  apiKey:            "REEMPLAZA_CON_TU_API_KEY",
+  authDomain:        "REEMPLAZA.firebaseapp.com",
+  projectId:         "REEMPLAZA_CON_TU_PROJECT_ID",
+  storageBucket:     "REEMPLAZA.appspot.com",
+  messagingSenderId: "REEMPLAZA_CON_TU_SENDER_ID",
+  appId:             "REEMPLAZA_CON_TU_APP_ID"
+};
+// ════════════════════════════════════════════════════════════════
+ 
+const TXN_COL = 'trident_transactions'; // nombre de la colección en Firestore
+ 
+// ── Inicializar Firebase ──
+let db = null;
+let firestoreOk = false;
+ 
+try {
+  firebase.initializeApp(FB_CONFIG);
+  db = firebase.firestore();
+} catch(e) {
+  console.warn('Firebase init error:', e);
+}
+ 
+// ── Cache de transacciones en memoria ──
+let cachedTxns = null; // null = aún no cargado
+ 
+// ────────────────────────────────────────────────────────────────
+// CONVERTERS — entre array interno y documento Firestore
+// ────────────────────────────────────────────────────────────────
+// Array: [co, serial, type, lcAmt, eurAmt, shares, ppsLc, fdShares, fx, cur, postmoney_lc, proceeds_eur, notes]
+//         0    1       2     3      4       5       6      7         8   9    10             11            12
+ 
+function txnToDoc(t) {
+  return {
+    company:     t[0]  ?? '',
+    serial:      t[1]  ?? 0,
+    type:        t[2]  ?? '',
+    lcAmt:       t[3]  ?? 0,
+    eurAmt:      t[4]  ?? 0,
+    shares:      t[5]  ?? null,
+    ppsLc:       t[6]  ?? null,
+    fdShares:    t[7]  ?? null,
+    fx:          t[8]  ?? 1,
+    currency:    t[9]  ?? 'EUR',
+    postmoneyLc: t[10] ?? null,
+    proceedsEur: t[11] ?? 0,
+    notes:       t[12] ?? '',
+    createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    isBase:      false,
+  };
+}
+ 
+function docToTxn(doc) {
+  const d = doc.data();
+  return [
+    d.company, d.serial, d.type,
+    d.lcAmt ?? 0, d.eurAmt ?? 0,
+    d.shares ?? null, d.ppsLc ?? null, d.fdShares ?? null,
+    d.fx ?? 1, d.currency ?? 'EUR',
+    d.postmoneyLc ?? null, d.proceedsEur ?? 0,
+    d.notes ?? ''
+  ];
+}
+ 
+// ────────────────────────────────────────────────────────────────
+// FIRESTORE — Carga inicial
+// ────────────────────────────────────────────────────────────────
+async function loadFromFirestore() {
+  setConn('wait', 'Conectando…');
+  setOverlay(true, 'Cargando transacciones desde Firestore…');
+ 
+  // Detectar si el config está sin rellenar
+  if (FB_CONFIG.apiKey.startsWith('REEMPLAZA')) {
+    console.warn('⚠ FB_CONFIG no configurado — usando datos locales');
+    setConn('err', 'Config pendiente');
+    cachedTxns = [...BASE_TXN];
+    setOverlay(false);
+    refresh();
+    return;
+  }
+ 
+  try {
+    const snap = await db.collection(TXN_COL).orderBy('serial').get();
+    firestoreOk = true;
+ 
+    if (snap.empty) {
+      // Primera vez: Firestore vacío → mostrar banner de seed
+      cachedTxns = [...BASE_TXN];
+      document.getElementById('seed-banner').classList.add('show');
+      setConn('ok', 'Conectado — vacío');
+    } else {
+      cachedTxns = snap.docs.map(docToTxn);
+      setConn('ok', `Conectado · ${cachedTxns.length} tx`);
+    }
+  } catch (e) {
+    console.error('Firestore load error:', e);
+    firestoreOk = false;
+    setConn('err', 'Sin conexión');
+    cachedTxns = [...BASE_TXN];
+    showGlobalError('⚠ No se pudo conectar con Firestore. Mostrando datos locales. Revisa la configuración de FB_CONFIG.');
+  }
+ 
+  setOverlay(false);
+  refresh();
+}
+ 
+// ────────────────────────────────────────────────────────────────
+// FIRESTORE — Seed (importar BASE_TXN la primera vez)
+// ────────────────────────────────────────────────────────────────
+async function seedFirestore() {
+  if (!firestoreOk) { alert('Firestore no está conectado.'); return; }
+  document.getElementById('seed-banner').classList.remove('show');
+  setOverlay(true, `Importando ${BASE_TXN.length} transacciones base…`);
+ 
+  try {
+    // Firestore limita batch a 500 ops
+    const chunks = [];
+    for (let i = 0; i < BASE_TXN.length; i += 400) chunks.push(BASE_TXN.slice(i, i + 400));
+ 
+    for (const chunk of chunks) {
+      const batch = db.batch();
+      chunk.forEach(t => {
+        const ref = db.collection(TXN_COL).doc();
+        const doc = txnToDoc(t);
+        doc.isBase = true;
+        batch.set(ref, doc);
+      });
+      await batch.commit();
+    }
+ 
+    // Recargar desde Firestore para asegurar consistencia
+    const snap = await db.collection(TXN_COL).orderBy('serial').get();
+    cachedTxns = snap.docs.map(docToTxn);
+    setConn('ok', `Conectado · ${cachedTxns.length} tx`);
+  } catch (e) {
+    console.error('Seed error:', e);
+    alert('Error al importar datos: ' + e.message);
+  }
+ 
+  setOverlay(false);
+  refresh();
+}
+ 
+// ────────────────────────────────────────────────────────────────
+// FIRESTORE — Guardar nueva transacción
+// ────────────────────────────────────────────────────────────────
+async function writeToFirestore(txnArray) {
+  if (!firestoreOk) {
+    // Fallback: solo en memoria
+    cachedTxns.push(txnArray);
+    cachedTxns.sort((a, b) => a[1] - b[1]);
+    return { ok: true, local: true };
+  }
+  try {
+    const doc = txnToDoc(txnArray);
+    await db.collection(TXN_COL).add(doc);
+    // Actualizar cache local también
+    cachedTxns.push(txnArray);
+    cachedTxns.sort((a, b) => a[1] - b[1]);
+    setConn('ok', `Conectado · ${cachedTxns.length} tx`);
+    return { ok: true, local: false };
+  } catch (e) {
+    console.error('Write error:', e);
+    return { ok: false, error: e.message };
+  }
+}
+ 
+// ────────────────────────────────────────────────────────────────
+// getTxns — fuente única de verdad para el motor
+// ────────────────────────────────────────────────────────────────
+function getTxns() {
+  return cachedTxns ?? BASE_TXN;
+}
+ 
+// ────────────────────────────────────────────────────────────────
+// UI helpers
+// ────────────────────────────────────────────────────────────────
+function setOverlay(on, msg) {
+  const el = document.getElementById('overlay');
+  if (msg) document.getElementById('overlay-msg').textContent = msg;
+  el.classList.toggle('hidden', !on);
+}
+ 
+function setConn(state, label) {
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-label');
+  dot.className = 'conn-dot ' + state;
+  lbl.textContent = label;
+}
+ 
+function showGlobalError(msg) {
+  const div = document.createElement('div');
+  div.style.cssText = 'background:var(--Rbg);border:1px solid var(--R);border-radius:var(--r8);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--Rtx)';
+  div.textContent = msg;
+  document.getElementById('view-portfolio').prepend(div);
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════════
+const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+             'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+ 
+const FX = {
+  '2022-04':1.090,'2022-05':1.052,'2022-06':1.050,'2022-07':1.016,'2022-08':0.994,
+  '2022-09':0.985,'2022-10':0.988,'2022-11':1.010,'2022-12':1.055,
+  '2023-01':1.075,'2023-02':1.072,'2023-03':1.076,'2023-04':1.095,
+  '2023-05':1.085,'2023-06':1.087,'2023-07':1.103,'2023-08':1.094,
+  '2023-09':1.063,'2023-10':1.054,'2023-11':1.087,'2023-12':1.098,
+  '2024-01':1.084,'2024-02':1.082,'2024-03':1.087,'2024-04':1.071,
+  '2024-05':1.080,'2024-06':1.075,'2024-07':1.088,'2024-08':1.103,
+  '2024-09':1.115,'2024-10':1.082,'2024-11':1.056,'2024-12':1.044,
+  '2025-01':1.038,'2025-02':1.040,'2025-03':1.082,'2025-04':1.130,
+  '2025-05':1.127,'2025-06':1.141,'2025-07':1.175,'2025-08':1.120,
+  '2025-09':1.163,'2025-10':1.090,'2025-11':1.058,'2025-12':1.055,
+  '2026-01':1.042,'2026-02':1.055,'2026-03':1.155
+};
+ 
+const META = {
+  'MyInvestor':['España','Inversión','EUR'],'Creditas':['Brasil','Crédito','USD'],
+  'Urbanitae':['España','Proptech','EUR'],'Boom':['EE.UU','Infraestructura','USD'],
+  'Mundi Trade':['México','Crédito','USD'],'Gringo':['Brasil','Finanzas Emb.','USD'],
+  'Zippi':['Brasil','Crédito','USD'],'Lemon Energia':['Brasil','Finanzas Emb.','USD'],
+  'Kanastra':['Brasil','Infraestructura','USD'],'KillB':['Brasil','Pagos','USD'],
+  'Reworth':['México','Infraestructura','USD'],'Boopos':['EE.UU','Crédito','USD'],
+  'Ukio':['España','Proptech','USD'],'Frekuent':['España','Pagos','EUR'],
+  'Fence':['España','Infraestructura','USD'],'Latitud':['Brasil','Finanzas Emb.','USD'],
+  'Arke':['Brasil','Crédito','USD'],'ASN':['España','Inversión','EUR'],
+  'PactFi':['EE.UU','Infraestructura','USD'],'Principia':['Brasil','Crédito','USD'],
+  'Vixtra':['Brasil','Crédito','USD'],'Deale':['España','Finanzas Emb.','EUR'],
+  'Depasify':['España','Infraestructura','EUR'],'Simetrik':['Colombia','Infraestructura','USD'],
+  'Akad Seguros':['Brasil','Insurtech','USD'],'GPT Advisor':['España','Inversión','EUR'],
+  'Moove':['Holanda','Crédito','USD'],'CXC':['México','Infraestructura','USD'],
+  'Beep Saude':['Brasil','Insurtech','USD'],'Konfio':['México','Crédito','USD'],
+  'Vivla':['España','Proptech','EUR'],'Capim':['Brasil','Crédito','USD'],
+  'Crabi':['México','Insurtech','USD'],'Gopass':['Colombia','Pagos','USD'],
+  'Spotahome':['España','Proptech','EUR'],'Job & Talent':['España','Finanzas Emb.','EUR'],
+  'Iniciador':['Brasil','Pagos','USD'],'L40':['EE.UU','Finanzas Emb.','USD'],
+  'Findango':['España','Crédito','EUR'],'CloudWalk':['Brasil','Pagos','USD'],
+  'Omie':['Brasil','Finanzas Emb.','USD'],'Zig':['Brasil','Pagos','USD'],
+  'Leasy':['Perú','Crédito','USD'],'Bliss Saude':['Brasil','Insurtech','USD'],
+  'Hero Seguros':['Brasil','Insurtech','USD'],
+  'Dila IV':['México','Fondo','USD'],'Quona III':['Global','Fondo','USD'],'Fontes II':['Brasil','Fondo','USD'],
+};
+ 
+const BASE_TXN = [
+ ['MyInvestor',44700,'eq',3000000,3000000,376152,7.9755,12538321,1,'EUR',100000000,0,'Nota convertible inicial'],
+ ['MyInvestor',44994,'cn',0,0,371003,5.4245,35026072,1,'EUR',190000000,0,'2ª nota. Ampliación sin desembolso'],
+ ['MyInvestor',45657,'val',0,0,0,7.000,35026072,1,'EUR',248239000,0,'Val. EY jun-25 PPS 7€'],
+ ['MyInvestor',45957,'eq',639942,639942,86210,7.423,39067541,1,'EUR',290000000,0,'Ampliación €30M oct-25'],
+ ['Creditas',44701,'eq',3000207,2864433,9525,314.98,14140095,1.0474,'USD',4800000000,0,'Equity inicial'],
+ ['Creditas',45058,'cn',0,0,-9525,null,15643222,1.093,'USD',null,0,'Apertura nota (ajuste provisional)'],
+ ['Creditas',45838,'val',0,0,0,5235952,null,1.1787,'USD',null,0,'Valor nota Q2-25 — total USD en campo PPS'],
+ ['Creditas',45930,'val',0,0,0,5423690,null,1.1734,'USD',null,0,'Valor nota Q3-25 — total USD en campo PPS'],
+ ['Creditas',45989,'cc',0,0,27327,202.998,15447430,1.1566,'USD',3135803574,0,'Cierre SAFE → Series G-2'],
+ ['Urbanitae',44719,'eq',1003880,1003880,7698,130.41,166087,1,'EUR',20000000,0,''],
+ ['Urbanitae',44926,'val',0,0,0,229.42,null,1,'EUR',38103680,0,'Val. auditada'],
+ ['Urbanitae',45291,'val',0,0,0,599.5,null,1,'EUR',null,0,''],
+ ['Urbanitae',45657,'val',0,0,0,599.5,null,1,'EUR',97546000,0,'Traspaso master EY'],
+ ['Boom',44701,'eq',399995,381893,44397,9.009,2053396,1.0474,'USD',18500000,0,''],
+ ['Boom',45291,'val',0,0,0,12.0,null,1.039,'USD',11202000,0,'Val. auditada dic-23'],
+ ['Mundi Trade',44701,'eq',449994,429629,56060,8.027,14521917,1.0474,'USD',115000000,0,''],
+ ['Mundi Trade',44805,'cn',200000,204318,24407,10.84,15132082,0.979,'USD',124000000,0,''],
+ ['Mundi Trade',45079,'cc',0,0,43148,4.247,22922784,1.076,'USD',95000000,0,'Conversión nota'],
+ ['Gringo',44701,'eq',499581,476972,1039,480.83,250244,1.0474,'USD',124000000,0,''],
+ ['Gringo',45155,'eq',499497,465605,897,556.85,332217,1.073,'USD',185000000,0,''],
+ ['Gringo',45386,'eq',999546,923182,1795,556.85,331597,1.083,'USD',185000000,0,''],
+ ['Gringo',45789,'sale',0,0,-3731,null,null,1.057,'USD',null,1998621,'Venta total 12-may-25'],
+ ['Zippi',44727,'eq',249995,239204,41319,6.050,12561220,1.045,'USD',75000000,0,''],
+ ['Lemon Energia',44722,'eq',362999,344238,198602,1.828,16310609,1.055,'USD',30000000,0,''],
+ ['Lemon Energia',45532,'eq',129653,116594,65793,1.971,22038798,1.112,'USD',43000000,0,''],
+ ['Kanastra',44729,'eq',384999,366972,112166,3.432,7635891,1.049,'USD',26250000,0,''],
+ ['Kanastra',44923,'eq',250000,238101,46846,5.337,8713354,1.050,'USD',46500000,0,''],
+ ['Kanastra',45390,'eq',298768,275820,56645,5.274,11855341,1.083,'USD',62500000,0,''],
+ ['Kanastra',45653,'eq',89132,85589,16899,7.384,17337878,1.041,'USD',98533997,0,''],
+ ['KillB',44743,'cn',100000,98726,1,100000,null,1.013,'USD',15000000,0,'1 unit share a $100k'],
+ ['Reworth',44747,'cn',500000,480908,0,null,null,1.040,'USD',35000000,0,'Nota sin PPS'],
+ ['Reworth',45991,'wo',0,0,0,0,null,1.159,'USD',null,200,'Write-off nov-25'],
+ ['Boopos',44777,'eq',1500000,1500000,780965,1.921,19362876,1.010,'USD',36990000,0,''],
+ ['Boopos',45212,'eq',250000,250000,130161,1.921,20625438,1.061,'USD',null,0,''],
+ ['Boopos',45387,'cn',100000,100000,0,null,null,1.084,'USD',null,0,'Nota €100k'],
+ ['Boopos',45657,'val',0,0,0,0.195,null,1.035,'USD',null,0,'Valor pre write-off'],
+ ['Boopos',45747,'wo',0,0,0,0,null,1.081,'USD',null,0,'Write-off mar-25'],
+ ['Ukio',44798,'eq',494909,486952,169565,2.919,26981384,0.984,'USD',78750000,0,''],
+ ['Ukio',45635,'eq',1580550,1499522,394152,3.800,32873611,1.054,'USD',null,0,''],
+ ['Ukio',45657,'val',0,0,0,4.010,null,1.035,'USD',132000000,0,''],
+ ['Frekuent',44947,'eq',396224,396224,4071,97.33,126823,1,'EUR',12343683,0,''],
+ ['Frekuent',44947,'eq',103776,103776,1300,79.83,126823,1,'EUR',10124280,0,''],
+ ['Frekuent',45420,'eq',14523,14523,1080,13.44,126823,1,'EUR',1704501,0,'Follow-on'],
+ ['Frekuent',45471,'cn',130000,130000,0,null,null,1,'EUR',null,0,'Nota €130k'],
+ ['Frekuent',45485,'eq',51768,51768,652,null,null,1,'EUR',null,0,'Sin PPS'],
+ ['Frekuent',45637,'cn',41702,41702,0,null,null,1,'EUR',null,0,'2ª nota'],
+ ['Frekuent',45657,'val',0,0,0,231.84,null,1,'EUR',36500000,0,'PPS blended commons -40%'],
+ ['Frekuent',45854,'cc',22947,22947,1555,133.41,153140,1,'EUR',20149393,0,'Conversión notas + secundario'],
+ ['Frekuent',45868,'val',0,0,0,239.99,153140,1,'EUR',36500000,0,'Corrección PPS vigente'],
+ ['Fence',45037,'cn',100000,100000,115566,null,null,1.080,'USD',10000000,0,''],
+ ['Fence',45621,'eq',49999,47619,31818,1.571,15368728,1.050,'USD',24150000,0,''],
+ ['Latitud',45041,'cn',48075,43697,0,null,null,1.100,'USD',60000000,0,'Nota'],
+ ['Latitud',45041,'val',0,0,23586,2.038,null,1.100,'USD',null,0,'Val. misma fecha — 23586 shares a $2.04'],
+ ['Arke',45099,'cn',500000,500000,1,500000,null,1.090,'USD',7500000,0,'1 unit share $500k'],
+ ['Arke',45657,'val',0,0,0,500000,null,1.035,'USD',null,0,'Valor de la nota — revisión pendiente'],
+ ['Arke',45895,'cn',150000,150000,0,null,null,1.167,'USD',10000000,0,'SAFE $150k @$10M cap'],
+ ['ASN',45105,'cn',250009,250009,14211,17.593,354697,1,'EUR',5700000,0,''],
+ ['ASN',45657,'val',0,0,0,17.593,null,1,'EUR',8000000,0,'PPS sin cambio'],
+ ['ASN',45789,'follow',40000,40000,2274,17.593,null,1,'EUR',null,0,'Nota €40k como equity'],
+ ['PactFi',45090,'eq',250000,235334,165180,1.514,17300000,1.062,'USD',25000000,0,''],
+ ['PactFi',45657,'val',0,0,0,2.954,null,1.035,'USD',48798620,0,''],
+ ['Principia',45218,'eq',749998,711661,262678,2.855,24563859,1.054,'USD',70134730,0,''],
+ ['Principia',45608,'eq',499999,471561,175119,2.855,28310189,1.061,'USD',80831252,0,''],
+ ['Vixtra',45280,'eq',750000,687072,466012,1.609,17397635,1.092,'USD',28150000,0,''],
+ ['Vixtra',45735,'eq',99999,91560,49706,2.012,18540176,1.092,'USD',37300000,0,''],
+ ['Deale',45288,'eq',375000,375000,43353,8.65,866834,1,'EUR',7498114,0,''],
+ ['Deale',45657,'val',0,0,0,11.281,null,1,'EUR',9779097,0,'Val. dic-24 Excel Aitor'],
+ ['Depasify',45280,'eq',234985,234985,13888,16.92,451911,1,'EUR',7646334,0,''],
+ ['Depasify',45657,'val',0,0,0,18.10,null,1,'EUR',8211000,0,''],
+ ['Simetrik',45345,'eq',999995,924261,169213,5.910,36380978,1.082,'USD',214999974,0,''],
+ ['Simetrik',45657,'val',0,0,0,8.589,null,1.035,'USD',347623367,0,''],
+ ['Akad Seguros',45407,'eq',749998,701490,302956,2.476,54076768,1.069,'USD',142500000,0,''],
+ ['Akad Seguros',45565,'eq',749998,671208,302956,2.476,58621118,1.118,'USD',145122440,0,''],
+ ['GPT Advisor',45393,'cn',300000,300000,0,null,null,1,'EUR',null,0,'Nota. Cap social €3k'],
+ ['GPT Advisor',45657,'val',0,0,120,2500,null,1,'EUR',null,0,'120 shares @€2500'],
+ ['Moove',45433,'cn',605453,557465,0,null,null,1.086,'USD',null,0,'Nota sin PPS'],
+ ['Moove',45657,'val',0,0,405,2985.18,96745,1.035,'USD',null,0,'405 shares @$2985'],
+ ['CXC',45520,'eq',999999,865599,190476,5.25,11535505,1.098,'USD',52499995,0,''],
+ ['Beep Saude',45533,'eq',999994,865595,10382,96.32,2203121,1.112,'USD',212204615,0,''],
+ ['Konfio',45526,'cn',999999,898168,133461,7.493,98932091,1.113,'USD',741280350,0,'Nota conv. activa'],
+ ['Vivla',45567,'cn',500000,500000,0,null,null,1,'EUR',21550000,0,'Nota con liq. preference'],
+ ['Vivla',45657,'val',0,0,255284,1.959,12475087,1,'EUR',null,0,'255284 shares @€1.96'],
+ ['Vivla',45853,'eq',250000,250000,76410,3.272,12475622,1,'EUR',40000000,0,'Ronda Samaipata €8M'],
+ ['Capim',45656,'eq',749998,649198,231817,3.235,24305560,1.041,'USD',78635778,0,''],
+ ['Crabi',45699,'eq',499999,432800,2126392,0.235,161498833,1.036,'USD',37975000,0,''],
+ ['Gopass',45747,'eq',500000,432800,227884,2.194,18458719,1.087,'USD',40500288,0,''],
+ ['Gopass',45747,'eq',500000,432800,219747,2.275,20436439,1.087,'USD',46500000,0,'2 tramos'],
+ ['Spotahome',45747,'eq',1130000,1130000,31347962,0.032,319044740,1,'EUR',10179412,0,''],
+ ['Job & Talent',45807,'eq',999993,999993,82077,12.184,93496565,1,'EUR',1139124749,0,'Serie F. Pref. stack subordinado'],
+ ['Iniciador',45840,'eq',249999,213086,246524,1.014,25639156,1.173,'USD',26000000,0,'Seeds-2. Fecha 02/07/25'],
+ ['L40',45809,'eq',891,780,17816,0.050,920943,1.142,'USD',46047,0,'Heredado de Boopos a nominal'],
+ ['Findango',45869,'eq',1009148,1009148,179479,5.623,3233858,1,'EUR',18000000,0,'Buyout con AndBank & MyInvestor'],
+ ['CloudWalk',45926,'eq',1500000,1283258,23964,62.594,47927644,1.169,'USD',3000000000,0,'Secundario $96M @$3B'],
+ ['Omie',45978,'eq',1500000,1292557,1184797,1.266,544406300,1.160,'USD',694374300,0,'BRL exposure'],
+ ['Zig',45988,'cn',795544,686465,1,795544,null,1.159,'USD',125600000,0,'SAFE fijo 1 acción=$10,828'],
+ ['Leasy',46008,'eq',500000,432795,null,null,null,1.155,'USD',60038736,0,'Datos incompletos'],
+ ['Bliss Saude',46084,'eq',750000,486900,null,null,null,1.112,'USD',40000000,0,''],
+ ['Hero Seguros',46079,'eq',993127,859652,null,null,null,1.142,'USD',36500000,0,''],
+ ['Dila IV',44682,'fund',739768,736651,null,null,null,1.047,'USD',null,0,'Inv. inicial'],
+ ['Dila IV',45747,'fund',0,0,null,630801,null,1.082,'USD',null,0,'NAV update'],
+ ['Dila IV',45838,'fund',0,0,null,574787,null,1.179,'USD',null,0,'NAV 30-jun sin distribuciones'],
+ ['Dila IV',45838,'dist',0,0,null,null,null,1.179,'USD',null,70724,'Distribución $83,362'],
+ ['Dila IV',45960,'fund',5018,4345,null,650529,null,1.155,'USD',null,0,'Capital call $5k'],
+ ['Quona III',44682,'fund',638757,666299,null,null,null,1.034,'USD',null,0,'Inv. inicial'],
+ ['Quona III',45793,'fund',16472,14229,null,584049,null,1.157,'USD',null,0,'Capital call'],
+ ['Quona III',45866,'fund',40119,34466,null,624168,null,1.164,'USD',null,0,'Capital call'],
+ ['Quona III',45929,'fund',8636,7427,null,632805,null,1.163,'USD',null,0,'Capital call'],
+ ['Fontes II',44944,'fund',187500,173741,null,null,null,1.020,'USD',null,0,''],
+ ['Fontes II',45747,'fund',0,0,null,254604,null,1.082,'USD',null,0,'NAV update'],
+];
+ 
+const NAV_H = [
+ {q:"Q2'22",s:44742,nav:12.49,called:0,mB:null,tB:null,tN:null},
+ {q:"Q3'22",s:44834,nav:12.50,called:0,mB:null,tB:null,tN:null},
+ {q:"Q4'22",s:44926,nav:13.02,called:12,mB:null,tB:null,tN:null},
+ {q:"Q1'23",s:45016,nav:14.45,called:12,mB:null,tB:null,tN:null},
+ {q:"Q2'23",s:45107,nav:15.53,called:18,mB:null,tB:null,tN:null},
+ {q:"Q3'23",s:45199,nav:16.06,called:18,mB:null,tB:null,tN:null},
+ {q:"Q4'23",s:45291,nav:21.65,called:18,mB:null,tB:18.84,tN:12.92},
+ {q:"Q1'24",s:45382,nav:23.02,called:24,mB:null,tB:16.93,tN:11.38},
+ {q:"Q2'24",s:45473,nav:26.46,called:24,mB:null,tB:15.04,tN:9.70},
+ {q:"Q3'24",s:45565,nav:29.58,called:24,mB:null,tB:11.33,tN:6.11},
+ {q:"Q4'24",s:45657,nav:38.71,called:31.5,mB:null,tB:20.60,tN:15.68},
+ {q:"Q1'25",s:45747,nav:43.69,called:31.5,mB:null,tB:21.45,tN:16.72},
+ {q:"Q2'25",s:45838,nav:37.79,called:37.5,mB:1.23,tB:null,tN:null},
+ {q:"Q3'25",s:45930,nav:49.79,called:37.5,mB:1.23,tB:null,tN:null},
+];
+ 
+// ════════════════════════════════════════════════════════════════
+// ENGINE
+// ════════════════════════════════════════════════════════════════
+function xlDate(s){return new Date((s-25569)*864e5);}
+function mkKey(s){const d=xlDate(s);return`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;}
+function getFx(s){
+  const k=mkKey(s),keys=Object.keys(FX).sort();
+  if(FX[k])return FX[k];
+  for(let i=0;i<keys.length-1;i++)if(k>=keys[i]&&k<=keys[i+1])return(FX[keys[i]]+FX[keys[i+1]])/2;
+  return 1.10;
+}
+function fmtD(s){const d=xlDate(s);return`${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;}
+ 
+function calcPos(co,targetS,allTxns){
+  const txns=(allTxns||getTxns()).filter(t=>t[0]===co&&t[1]<=targetS).sort((a,b)=>a[1]-b[1]);
+  if(!txns.length)return null;
+  const m=META[co]||['?','?','USD'];
+  const usd=m[2]==='USD';
+  let shares=0,costEur=0,procEur=0,lastPps=null,lastFd=null;
+  let noteBalEur=0,noteBalLc=0,noteValOverride=null;
+  let isWO=false,isExit=false,hasNote=false,isFund=false,fundNavLc=null;
+  for(const t of txns){
+    const[,s,type,lc,eur,sh,pps,fd,fx,cur,,proc]=t;
+    switch(type){
+      case 'eq':case 'follow':
+        shares+=(sh||0);costEur+=(eur||0);
+        if(pps!=null)lastPps=pps;if(fd)lastFd=fd;break;
+      case 'cn':
+        hasNote=true;
+        if(sh&&sh>0)shares+=sh;else if(sh&&sh<0)shares+=sh;
+        noteBalEur+=(eur||0);noteBalLc+=(lc||0);costEur+=(eur||0);
+        if(pps!=null&&sh&&sh>0)lastPps=pps;if(fd)lastFd=fd;break;
+      case 'cc':
+        hasNote=false;noteBalEur=0;noteBalLc=0;noteValOverride=null;
+        shares+=(sh||0);if(pps!=null)lastPps=pps;if(fd)lastFd=fd;break;
+      case 'val':
+        if(sh&&sh!==0){
+          if(!hasNote||shares===0)shares+=(sh||0);
+          if(pps!=null)lastPps=pps;if(fd)lastFd=fd;noteValOverride=null;
+        }else{
+          if(hasNote&&shares===0&&pps!=null)noteValOverride=pps;
+          else if(pps!=null)lastPps=pps;
+          if(fd)lastFd=fd;
+        }break;
+      case 'wo':
+        isWO=true;shares=0;noteBalEur=0;noteBalLc=0;noteValOverride=null;fundNavLc=null;break;
+      case 'sale':
+        procEur+=(proc||0);if(sh)shares+=sh;if(shares<=0){shares=0;isExit=true;}break;
+      case 'fund':
+        isFund=true;costEur+=(eur||0);if(pps!=null)fundNavLc=pps;break;
+      case 'dist':
+        procEur+=(proc||0);if(pps!=null)fundNavLc=pps;break;
+    }
+  }
+  const fxNow=getFx(targetS);
+  let valEur=0,statusCode='equity';
+  if(isWO){valEur=0;statusCode='wo';}
+  else if(isExit&&shares===0){valEur=procEur;statusCode='exit';}
+  else if(isFund){statusCode='fund';valEur=fundNavLc!=null?(usd?fundNavLc/fxNow:fundNavLc):costEur;}
+  else if(hasNote&&shares===0&&noteValOverride!=null){statusCode='note';valEur=usd?noteValOverride/fxNow:noteValOverride;}
+  else if(shares>0&&lastPps!=null){
+    const lc=shares*lastPps;valEur=usd?lc/fxNow:lc;
+    if(hasNote&&shares===1&&noteBalEur>100000){const sn=usd?(noteBalLc-shares*lastPps)/fxNow:noteBalEur-shares*lastPps;if(sn>0)valEur+=sn;}
+    if(hasNote&&shares<=114)statusCode='note';
+  }else if(hasNote){statusCode='note';valEur=noteBalEur;}
+  else if(shares>0&&lastPps===null){statusCode='equity';valEur=costEur;}
+  const moic=costEur>0?(valEur+procEur)/costEur:0;
+  const own=lastFd&&shares>0?shares/lastFd:null;
+  const pnl=valEur+procEur-costEur;
+  return{co,country:m[0],sector:m[1],currency:m[2],costEur,valEur,procEur,pnl,moic,own,
+    shares,lastPps,lastFd,noteBalEur,noteValOverride,hasNote,isFund,isWO,isExit,statusCode,txCount:txns.length};
+}
+ 
+function getPortfolio(targetS){
+  const txns=getTxns();
+  return[...new Set(txns.map(t=>t[0]))].map(co=>calcPos(co,targetS,txns)).filter(p=>p&&(p.costEur>0||p.valEur>0));
+}
+ 
+function xirr(amounts,serials){
+  if(amounts.length<2||!amounts.some(a=>a>0)||!amounts.some(a=>a<0))return null;
+  const d0=serials[0],dy=serials.map(s=>(s-d0)/365);
+  const f=r=>amounts.reduce((s,a,i)=>s+a/Math.pow(1+r,dy[i]),0);
+  const df=r=>amounts.reduce((s,a,i)=>s-dy[i]*a/Math.pow(1+r,dy[i]+1),0);
+  let r=0.15;
+  for(let i=0;i<100;i++){const fr=f(r),dfr=df(r);if(Math.abs(dfr)<1e-14)break;const nr=r-fr/dfr;if(Math.abs(nr-r)<1e-10){r=nr;break;}r=Math.max(-0.999,Math.min(50,nr));}
+  return isFinite(r)&&r>-1?r:null;
+}
+ 
+function fundXirr(targetS){
+  const txns=getTxns();const byDate={};
+  txns.forEach(t=>{if(['eq','cn','fund','follow'].includes(t[2])&&t[4]>0)byDate[t[1]]=(byDate[t[1]]||0)+t[4];});
+  const ams=[],sers=[];
+  Object.entries(byDate).sort((a,b)=>a[0]-b[0]).forEach(([s,v])=>{ams.push(-v);sers.push(+s);});
+  const pos=getPortfolio(targetS);
+  const tv=pos.reduce((s,p)=>s+p.valEur,0)+pos.reduce((s,p)=>s+p.procEur,0);
+  if(tv<=0)return null;
+  ams.push(tv);sers.push(targetS);
+  return xirr(ams,sers);
+}
+ 
+function coXirr(co,targetS){
+  const txns=getTxns().filter(t=>t[0]===co);
+  const ams=[],sers=[];
+  txns.filter(t=>t[1]<=targetS&&['eq','cn','fund','follow'].includes(t[2])&&t[4]>0).sort((a,b)=>a[1]-b[1]).forEach(t=>{ams.push(-t[4]);sers.push(t[1]);});
+  const pos=calcPos(co,targetS);
+  if(!pos||ams.length===0)return null;
+  ams.push(pos.valEur+pos.procEur);sers.push(targetS);
+  return xirr(ams,sers);
+}
+ 
+const fE=(n)=>n==null||isNaN(n)?'—':`€${Math.round(n).toLocaleString('es-ES')}`;
+const fEM=(n)=>n==null||isNaN(n)?'—':Math.abs(n)>=1e6?`€${(n/1e6).toFixed(1)}M`:Math.abs(n)>=1e3?`€${(n/1e3).toFixed(0)}k`:`€${Math.round(n)}`;
+const fM=(m)=>m==null||isNaN(m)?'—':`${m.toFixed(2)}x`;
+const fP=(p)=>p==null?'—':`${(p*100).toFixed(2)}%`;
+const fC=(m)=>!m?'mn':m>1.05?'mc':m<0.95?'md':'mn';
+const badge=(t)=>{const m={equity:'bG Equity',note:'bA Nota conv.',fund:'bP Fondo',exit:'bT Exit',wo:'bR Write-off'};const[c,l]=(m[t]||'bN ?').split(' ');return`<span class="badge ${c}">${l||t}</span>`;};
+const typeBadge=(t)=>{const m={eq:'bB Equity',cn:'bA Nota abierta',cc:'bA Nota cerrada',val:'bP Valoración',wo:'bR Write-off',sale:'bT Exit/venta',fund:'bN Fondo inv.',dist:'bN Fondo dist.',follow:'bB Follow-on'};const[c,l]=(m[t]||'bN '+t).split(' ');return`<span class="badge ${c}">${l}</span>`;};
+const PAL=['#3266ad','#1d9e75','#ba7517','#993c1d','#7f77dd','#d85a30','#185fa5','#3b6d11','#854f0b','#534ab7','#0f6e56','#a32d2d'];
+const isDark=matchMedia('(prefers-color-scheme:dark)').matches;
+const gc=isDark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
+const tc=isDark?'rgba(255,255,255,.5)':'rgba(0,0,0,.4)';
+const charts={};
+function mkChart(id,type,data,opts){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),{type,data,options:opts});return charts[id];}
+ 
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let CY=2026,CM=3,selCo=null;
+function serial(y,m){return Math.round((new Date(Date.UTC(y,m,0)).getTime()/864e5)+25569);}
+ 
+function buildDateSel(){
+  const sM=document.getElementById('sM'),sY=document.getElementById('sY');
+  MES.forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m;sM.appendChild(o);});
+  for(let y=2022;y<=2026;y++){const o=document.createElement('option');o.value=y;o.textContent=y;sY.appendChild(o);}
+  sM.value=CM;sY.value=CY;
+  const ch=()=>{CM=+sM.value;CY=+sY.value;refresh();};
+  sM.addEventListener('change',ch);sY.addEventListener('change',ch);
+}
+ 
+function refresh(){
+  const s=serial(CY,CM),pos=getPortfolio(s);
+  renderBar(pos,s);renderPortfolio(pos,s);renderMetrics(pos,s);renderCoSel(pos,s);
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// VIEWS
+// ════════════════════════════════════════════════════════════════
+function renderBar(pos,s){
+  const nav=pos.reduce((a,p)=>a+p.valEur,0);
+  const cost=pos.reduce((a,p)=>a+p.costEur,0);
+  const moic=cost>0?((nav+pos.reduce((a,p)=>a+p.procEur,0))/cost):0;
+  document.getElementById('bar-kpis').innerHTML=[
+    ['NAV','€'+(nav/1e6).toFixed(1)+'M'],
+    ['MOIC',moic.toFixed(2)+'x'],
+    ['FX',getFx(s).toFixed(4)],
+  ].map(([l,v])=>`<div><div style="font-size:9px;color:var(--mu)">${l}</div><div style="font-weight:500">${v}</div></div>`).join('');
+}
+ 
+function renderPortfolio(pos,s){
+  const nav=pos.reduce((a,p)=>a+p.valEur,0);
+  const cost=pos.reduce((a,p)=>a+p.costEur,0);
+  const proc=pos.reduce((a,p)=>a+p.procEur,0);
+  const moic=cost>0?(nav+proc)/cost:0;
+  const active=pos.filter(p=>!p.isWO&&!p.isExit).length;
+  document.getElementById('pkpis').innerHTML=[
+    {l:'NAV calculado',v:fEM(nav),s:`${((nav/cost-1)*100).toFixed(1)}% vs coste`,cl:'B'},
+    {l:'MOIC calculado',v:fM(moic),s:`€${(proc/1e3).toFixed(0)}k distribuido`,cl:'G'},
+    {l:'Coste total',v:fEM(cost),s:'base de coste EUR'},
+    {l:'Posiciones activas',v:active,s:`${pos.filter(p=>p.statusCode==='note').length} notas / ${pos.filter(p=>p.isFund).length} fondos`},
+    {l:'Write-offs',v:pos.filter(p=>p.isWO).length,s:`${pos.filter(p=>p.isExit).length} exits realizados`},
+  ].map(c=>`<div class="kc ${c.cl||''}"><div class="lbl">${c.l}</div><div class="val">${c.v}</div><div class="sub">${c.s}</div></div>`).join('');
+  const q=(document.getElementById('ps').value||'').toLowerCase();
+  const f=document.getElementById('pf').value;
+  let rows=pos.filter(p=>{
+    if(q&&!p.co.toLowerCase().includes(q))return false;
+    if(f&&f!==p.statusCode)return false;
+    return true;
+  }).sort((a,b)=>b.valEur-a.valEur);
+  document.getElementById('pcnt').textContent=rows.length+' empresas';
+  document.getElementById('pfooter').textContent=`Corte: ${MES[CM-1]} ${CY} · USD/EUR: ${getFx(s).toFixed(4)} · ${firestoreOk?'Datos desde Firestore':'Datos locales'}`;
+  document.getElementById('ptb').innerHTML=rows.map(p=>`<tr>
+    <td><div class="cn">${p.co}</div><div class="cs">${p.txCount} tx</div></td>
+    <td><span class="tag">${p.country}</span></td>
+    <td style="color:var(--mu);font-size:11px">${p.sector}</td>
+    <td class="r mo">${fEM(p.costEur)}</td>
+    <td class="r mo" style="font-weight:500">${fEM(p.valEur)}</td>
+    <td class="r mo ${p.pnl>0?'mc':p.pnl<0?'md':'mn'}">${fEM(p.pnl)}</td>
+    <td class="r mo ${fC(p.moic)}">${fM(p.moic)}</td>
+    <td class="r mo">${fP(p.own)}</td>
+    <td>${badge(p.statusCode)}</td>
+  </tr>`).join('');
+  const gm={},sm={};
+  rows.forEach(p=>{if(p.valEur>0){gm[p.country]=(gm[p.country]||0)+p.valEur;sm[p.sector]=(sm[p.sector]||0)+p.valEur;}});
+  const dopts={responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fEM(c.parsed)}`}}}};
+  const ge=Object.entries(gm).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const se=Object.entries(sm).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  mkChart('gc','doughnut',{labels:ge.map(e=>e[0]),datasets:[{data:ge.map(e=>e[1]),backgroundColor:PAL,borderWidth:0}]},dopts);
+  mkChart('sc','doughnut',{labels:se.map(e=>e[0]),datasets:[{data:se.map(e=>e[1]),backgroundColor:PAL,borderWidth:0}]},dopts);
+}
+ 
+function renderMetrics(pos,s){
+  const nav=pos.reduce((a,p)=>a+p.valEur,0);
+  const cost=pos.reduce((a,p)=>a+p.costEur,0);
+  const proc=pos.reduce((a,p)=>a+p.procEur,0);
+  const moic=cost>0?(nav+proc)/cost:0;
+  const dpi=cost>0?proc/cost:0;
+  const irr=fundXirr(s);
+  document.getElementById('mkpis').innerHTML=[
+    {l:'NAV',v:fEM(nav),s:'valor calculado',cl:'B'},
+    {l:'MOIC bruto',v:fM(moic),s:'total / coste',cl:'G'},
+    {l:'TIR bruta (est.)',v:irr?(irr*100).toFixed(1)+'%':'—',s:'XIRR sobre capital'},
+    {l:'TVPI',v:fM(moic),s:'total value paid-in'},
+    {l:'DPI',v:dpi.toFixed(2)+'x',s:fEM(proc)+' distribuido'},
+    {l:'Coste total',v:fEM(cost),s:'de €60M comprometido'},
+  ].map(c=>`<div class="kc ${c.cl||''}"><div class="lbl">${c.l}</div><div class="val">${c.v}</div><div class="sub">${c.s}</div></div>`).join('');
+  const nl=NAV_H.map(h=>h.q),nv=NAV_H.map(h=>h.nav),cv=NAV_H.map(h=>h.called);
+  mkChart('nvc','line',{labels:nl,datasets:[
+    {label:'NAV',data:nv,borderColor:'#3266ad',backgroundColor:'rgba(50,102,173,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2},
+    {label:'Capital',data:cv,borderColor:'#1d9e75',fill:false,tension:.1,pointRadius:2,borderWidth:1.5,borderDash:[5,4]}
+  ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9},maxRotation:45},grid:{color:gc}},y:{ticks:{color:tc,font:{size:9},callback:v=>'€'+v+'M'},grid:{color:gc}}}});
+  const id=NAV_H.filter(h=>h.tB);
+  mkChart('irc','line',{labels:id.map(h=>h.q),datasets:[
+    {label:'TIR bruta',data:id.map(h=>h.tB),borderColor:'#3266ad',fill:false,tension:.35,pointRadius:4,borderWidth:2},
+    {label:'TIR neta',data:id.map(h=>h.tN),borderColor:'#1d9e75',fill:false,tension:.35,pointRadius:4,borderWidth:2,borderDash:[5,4]}
+  ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9}},grid:{color:gc}},y:{min:0,max:26,ticks:{color:tc,font:{size:9},callback:v=>v+'%'},grid:{color:gc}}}});
+  document.getElementById('qtb').innerHTML=NAV_H.map((h,i)=>`<tr style="${i===NAV_H.length-1?'font-weight:500':''}">
+    <td class="mo">${h.q}</td><td class="r mo">${h.nav}</td>
+    <td class="r mo">${h.called?'€'+h.called+'M':'—'}</td>
+    <td class="r mo">${h.mB?h.mB+'x':'—'}</td>
+    <td class="r mo" style="${h.tB&&h.tB>15?'color:var(--Gtx)':''}">${h.tB?h.tB.toFixed(1)+'%':'—'}</td>
+    <td class="r mo" style="${h.tN&&h.tN>12?'color:var(--Gtx)':''}">${h.tN?h.tN.toFixed(1)+'%':'—'}</td>
+  </tr>`).join('');
+  const by=pos.filter(p=>p.costEur>500).sort((a,b)=>b.costEur-a.costEur).slice(0,10);
+  mkChart('cc','doughnut',{labels:by.map(p=>p.co),datasets:[{data:by.map(p=>p.costEur),backgroundColor:PAL,borderWidth:0}]},
+    {responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fEM(c.parsed)}`}}}});
+  document.getElementById('ccleg').innerHTML=by.map((p,i)=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:2px;background:${PAL[i]};flex-shrink:0"></span>${p.co}</span>`).join('');
+}
+ 
+function renderCoSel(pos,s){
+  const q=(document.getElementById('cos').value||'').toLowerCase();
+  const cf=document.getElementById('cof').value;
+  const sel=document.getElementById('cof');
+  if(sel.options.length<=1)[...new Set(pos.map(p=>p.country))].sort().forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+  const filt=pos.filter(p=>{
+    if(q&&!p.co.toLowerCase().includes(q))return false;
+    if(cf&&p.country!==cf)return false;
+    return true;
+  }).sort((a,b)=>b.valEur-a.valEur);
+  document.getElementById('cosel').innerHTML=filt.map(p=>`
+    <button style="padding:5px 11px;border:1px solid ${selCo===p.co?'var(--B)':'var(--bd2)'};border-radius:3px;font-size:12px;cursor:pointer;background:${selCo===p.co?'var(--Bbg)':'var(--card)'};color:${selCo===p.co?'var(--Btx)':'var(--mu)'}" onclick="pickCo('${p.co}',${s})">${p.co}</button>
+  `).join('');
+  if(!selCo&&filt.length)selCo=filt[0].co;
+  if(selCo){const p=pos.find(x=>x.co===selCo);if(p)renderCoDet(p,s);}
+}
+function pickCo(co,s){selCo=co;const pos=getPortfolio(s);renderCoSel(pos,s);}
+ 
+function renderCoDet(pos,s){
+  const init=pos.co.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const colors=['#3266ad','#1d9e75','#ba7517','#993c1d','#534ab7','#d85a30'];
+  const col=colors[pos.co.charCodeAt(0)%colors.length];
+  const irr=coXirr(pos.co,s);
+  const txns=getTxns().filter(t=>t[0]===pos.co).sort((a,b)=>a[1]-b[1]);
+  let calcNote='';
+  if(pos.statusCode==='note'&&pos.noteValOverride!=null)calcNote=`<div class="explain">Nota convertible: valor calculado desde actualización explícita <strong>total</strong> en moneda local (${pos.currency}), convertida al tipo del mes.</div>`;
+  else if(pos.statusCode==='note')calcNote=`<div class="explain">Nota convertible: valorada <strong>a coste</strong> (sin actualización de valoración disponible a esta fecha).</div>`;
+  else if(pos.isFund)calcNote=`<div class="explain">Fondo (LP): valor calculado desde el <strong>último NAV</strong> registrado en moneda local.</div>`;
+  else if(pos.shares&&pos.lastPps)calcNote=`<div class="explain">Equity: <strong>${Math.round(pos.shares).toLocaleString('es-ES')} acciones × PPS ${pos.currency} ${pos.lastPps.toLocaleString('es-ES',{maximumFractionDigits:4})}</strong> ÷ tipo de cambio ${getFx(s).toFixed(4)}</div>`;
+  document.getElementById('codet').innerHTML=`
+  <div class="cohead">
+    <div class="coav" style="background:${col}22;color:${col}">${init}</div>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:500">${pos.co}</div>
+      <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+        <span class="tag">${pos.country}</span><span class="tag">${pos.sector}</span>
+        <span class="tag">${pos.currency}</span>${badge(pos.statusCode)}
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:22px;font-weight:500;font-family:var(--mono)">${fEM(pos.valEur)}</div>
+      <div style="font-size:11px;color:var(--mu)">valor calculado</div>
+    </div>
+  </div>
+  ${calcNote}
+  <div class="dg">
+    ${[['Coste (€)',fEM(pos.costEur)],['Valor calculado',fEM(pos.valEur)],['P&G',fEM(pos.pnl)],
+       ['MOIC',fM(pos.moic)],['TIR empresa',irr?(irr*100).toFixed(1)+'%':'—'],
+       ['Ownership',fP(pos.own)],['Acciones',pos.shares?Math.round(pos.shares).toLocaleString('es-ES'):'—'],
+       ['FD shares',pos.lastFd?Math.round(pos.lastFd).toLocaleString('es-ES'):'—'],
+       ['PPS actual (LC)',pos.lastPps?pos.lastPps.toLocaleString('es-ES',{maximumFractionDigits:4}):'—'],
+       ['Transacciones',pos.txCount]].map(([l,v])=>`<div class="dc"><div class="dl">${l}</div><div class="dv">${v}</div></div>`).join('')}
+  </div>
+  <div class="tw">
+    <div class="th"><span class="tt">Historial de transacciones — ${pos.co}</span></div>
+    <div class="sx"><table>
+      <thead><tr><th>Fecha</th><th>Tipo</th><th class="r">Importe €</th><th class="r">Acciones</th>
+        <th class="r">PPS (LC)</th><th class="r">FD shares</th><th class="r">Post-money</th><th>Notas</th></tr></thead>
+      <tbody>${txns.map(t=>{
+        const[,s2,type,lc,eur,sh,pps,fd,fx,cur,pm,proc,notes]=t;
+        return`<tr>
+          <td class="mo">${fmtD(s2)}</td><td>${typeBadge(type)}</td>
+          <td class="r mo">${eur>0?fEM(eur):proc>0?`+${fEM(proc)}`:'—'}</td>
+          <td class="r mo">${sh?Math.round(sh).toLocaleString('es-ES'):'—'}</td>
+          <td class="r mo">${pps?Number(pps).toLocaleString('es-ES',{maximumFractionDigits:4}):'—'}</td>
+          <td class="r mo">${fd?Math.round(fd).toLocaleString('es-ES'):'—'}</td>
+          <td class="r mo">${pm?fEM(pm):'—'}</td>
+          <td style="font-size:10px;color:var(--mu);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${notes||''}">${notes||''}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+ 
+function renderTxns(){
+  const q=(document.getElementById('ts').value||'').toLowerCase();
+  const tf=document.getElementById('tty').value;
+  let rows=getTxns().filter(t=>{
+    if(q&&!t[0].toLowerCase().includes(q))return false;
+    if(tf&&t[2]!==tf)return false;
+    return true;
+  }).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('tcnt').textContent=rows.length+' transacciones';
+  document.getElementById('ttb').innerHTML=rows.map(t=>{
+    const[co,s,type,lc,eur,sh,pps,fd,fx,cur,pm,proc,notes]=t;
+    return`<tr>
+      <td style="font-weight:500">${co}</td>
+      <td class="mo">${fmtD(s)}</td><td>${typeBadge(type)}</td>
+      <td class="tag" style="font-size:10px">${cur||'—'}</td>
+      <td class="r mo">${lc>0?Math.round(lc).toLocaleString('es-ES'):'—'}</td>
+      <td class="r mo">${eur>0?fEM(eur):proc>0?'+'+fEM(proc):'—'}</td>
+      <td class="r mo">${sh?Math.round(sh).toLocaleString('es-ES'):'—'}</td>
+      <td class="r mo">${pps?Number(pps).toLocaleString('es-ES',{maximumFractionDigits:4}):'—'}</td>
+      <td class="r mo">${fd?Math.round(fd).toLocaleString('es-ES'):'—'}</td>
+      <td class="r mo">${pm?fEM(pm):'—'}</td>
+      <td class="r mo">${fx?Number(fx).toFixed(4):'—'}</td>
+      <td style="font-size:10px;color:var(--mu);max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${notes||''}">${notes||''}</td>
+    </tr>`;
+  }).join('');
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// TRANSACTION ENTRY FORM
+// ════════════════════════════════════════════════════════════════
+ 
+const TYPES=[
+  {id:'eq',icon:'◈',name:'Equity',desc:'Compra directa de acciones',fields:['shares','pps','fd','postmoney','notes']},
+  {id:'cn',icon:'◇',name:'Nota convertible / SAFE',desc:'Préstamo con conversión futura',fields:['discount','cap','floor','maturity','interest','notes']},
+  {id:'cc',icon:'◈',name:'Cierre de nota',desc:'Conversión nota → equity',fields:['shares','pps','fd','notes']},
+  {id:'val',icon:'◉',name:'Nueva valoración',desc:'Actualizar PPS o valor de nota',fields:['valmode','pps','fd','postmoney','notes']},
+  {id:'wo',icon:'✕',name:'Write-off',desc:'Cancelar posición a cero',fields:['notes']},
+  {id:'sale',icon:'→',name:'Exit / venta',desc:'Venta total o parcial de acciones',fields:['shares','proceeds','notes']},
+  {id:'fund',icon:'◫',name:'Fondo — capital call',desc:'Aportación a fondo LP',fields:['fundnav','notes']},
+  {id:'dist',icon:'←',name:'Fondo — distribución',desc:'Distribución recibida de fondo LP',fields:['proceeds','fundnav','notes']},
+];
+ 
+let fType=null;
+ 
+function buildForm(){
+  const sel=document.getElementById('fco');
+  const cos=[...new Set(BASE_TXN.map(t=>t[0]))].sort();
+  cos.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.insertBefore(o,sel.lastElementChild);});
+  sel.addEventListener('change',()=>{
+    document.getElementById('newco-row').style.display=sel.value==='__new__'?'block':'none';
+    onFormChange();
+  });
+  document.getElementById('ftypegrid').innerHTML=TYPES.map(t=>`
+    <button class="ftype-btn" data-t="${t.id}" onclick="setFType('${t.id}')">
+      <div class="ico">${t.icon}</div>
+      <div class="nm">${t.name}</div>
+      <span class="ds">${t.desc}</span>
+    </button>`).join('');
+  const td=new Date();
+  document.getElementById('fdate').value=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,'0')}-${String(td.getDate()).padStart(2,'0')}`;
+  document.getElementById('fdate').addEventListener('change',()=>{
+    const d=document.getElementById('fdate').value;
+    if(!d)return;
+    const[y,m]=d.split('-');
+    const k=`${y}-${m}`;
+    const rate=FX[k]||getFx(dateToSerial(d));
+    document.getElementById('ffx').value=rate.toFixed(4);
+    document.getElementById('fxhint').textContent=`Tasa media ${MES[+m-1]} ${y}: ${rate.toFixed(4)}`;
+    onFormChange();
+  });
+  document.getElementById('fcur').addEventListener('change',()=>{
+    const isUSD=document.getElementById('fcur').value==='USD';
+    document.getElementById('ffx').parentElement.style.display=isUSD?'flex':'none';
+    onFormChange();
+  });
+  document.getElementById('ffx').parentElement.style.display='none';
+  document.getElementById('fsave').addEventListener('click',saveTransaction);
+  document.getElementById('freset').addEventListener('click',resetForm);
+}
+ 
+function dateToSerial(dateStr){
+  const d=new Date(dateStr+'T00:00:00Z');
+  return Math.round((d.getTime()/864e5)+25569);
+}
+ 
+function setFType(t){
+  fType=t;
+  document.querySelectorAll('.ftype-btn').forEach(b=>b.classList.toggle('sel',b.dataset.t===t));
+  renderDynFields(t);
+  document.getElementById('ffields').style.display='block';
+  onFormChange();
+}
+ 
+const FIELD_HTML={
+  shares:`<div class="fg"><label>Número de acciones adquiridas</label><input type="number" id="ff-shares" step="1" min="0" placeholder="ej: 50000"></div>`,
+  pps:`<div class="fg"><label>PPS en moneda local</label><input type="number" id="ff-pps" step="any" placeholder="ej: 12.50"></div>`,
+  fd:`<div class="fg"><label>FD shares (fully diluted tras tx)</label><input type="number" id="ff-fd" step="1" min="0" placeholder="ej: 45000000"></div>`,
+  postmoney:`<div class="fg"><label>Valoración post-money (LC)</label><input type="number" id="ff-pm" step="any" placeholder="ej: 50000000"></div>`,
+  discount:`<div class="fg"><label>Descuento sobre ronda (%)</label><input type="number" id="ff-disc" step="0.1" min="0" max="50" placeholder="ej: 20"></div>`,
+  cap:`<div class="fg"><label>Cap de conversión (LC)</label><input type="number" id="ff-cap" step="any" placeholder="ej: 30000000"></div>`,
+  floor:`<div class="fg"><label>Floor de conversión (LC)</label><input type="number" id="ff-floor" step="any" placeholder="ej: 10000000"></div>`,
+  maturity:`<div class="fg"><label>Fecha de vencimiento</label><input type="date" id="ff-mat"></div>`,
+  interest:`<div class="fg"><label>Interés anual (%)</label><input type="number" id="ff-int" step="0.1" min="0" max="30" placeholder="ej: 6"></div>`,
+  valmode:`<div class="fg"><label>¿Qué representa PPS?</label><select id="ff-vm"><option value="pershare">PPS por acción (equity)</option><option value="total">Valor total del stake en LC (nota sin shares)</option></select></div>`,
+  proceeds:`<div class="fg"><label>Proceeds recibidos (€)</label><input type="number" id="ff-proc" step="any" min="0" placeholder="ej: 1500000"></div>`,
+  fundnav:`<div class="fg"><label>NAV del fondo a esta fecha (LC)</label><input type="number" id="ff-nav" step="any" placeholder="ej: 750000"></div>`,
+  notes:`<div class="fg" style="grid-column:1/-1"><label>Notas / términos</label><textarea id="ff-notes" rows="2" placeholder="Términos relevantes, rationale…"></textarea></div>`,
+};
+ 
+const AMOUNT_HTML=`
+  <div class="fgrid w3">
+    <div class="fg"><label>Importe en moneda local (LC)</label><input type="number" id="ff-lc" step="any" min="0" placeholder="ej: 1000000" oninput="autoCalcEur()"></div>
+    <div class="fg"><label>Importe en EUR</label><input type="number" id="ff-eur" step="any" min="0" placeholder="ej: 950000" oninput="autoCalcLc()"></div>
+    <div class="fg"><label>¿Auto-calcular?</label><select id="ff-auto"><option value="eur">Calcular EUR desde LC</option><option value="lc">Calcular LC desde EUR</option><option value="none">Manual</option></select></div>
+  </div>`;
+ 
+function renderDynFields(t){
+  const cfg=TYPES.find(x=>x.id===t);
+  if(!cfg)return;
+  const hasAmount=['eq','cn','cc','fund'].includes(t);
+  let html='<div class="fgrid">';
+  (cfg.fields||[]).forEach(f=>{if(f!=='notes')html+=FIELD_HTML[f]||`<div class="fg"><label>${f}</label><input type="text" id="ff-${f}"></div>`;});
+  html+='</div>';
+  if(hasAmount)html+=AMOUNT_HTML;
+  html+='<div class="fgrid">'+(FIELD_HTML.notes||'')+'</div>';
+  document.getElementById('fdynamic').innerHTML=html;
+  document.getElementById('ffsec').textContent=`3 — Detalles: ${cfg.name}`;
+  ['ff-shares','ff-pps','ff-lc','ff-eur','ff-proc'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('input',onFormChange);
+  });
+  autoCalcEur();onFormChange();
+}
+ 
+function autoCalcEur(){
+  const lc=parseFloat(document.getElementById('ff-lc')?.value);
+  const fx=parseFloat(document.getElementById('ffx').value)||getFx(dateToSerial(document.getElementById('fdate').value||new Date().toISOString().slice(0,10)));
+  const auto=document.getElementById('ff-auto')?.value;
+  const cur=document.getElementById('fcur').value;
+  if(!lc||auto!=='eur')return;
+  const eur=cur==='USD'?lc/fx:lc;
+  if(document.getElementById('ff-eur'))document.getElementById('ff-eur').value=eur.toFixed(2);
+  const sh=parseFloat(document.getElementById('ff-shares')?.value);
+  if(sh&&lc&&document.getElementById('ff-pps'))document.getElementById('ff-pps').value=(lc/sh).toFixed(6);
+  onFormChange();
+}
+ 
+function autoCalcLc(){
+  const eur=parseFloat(document.getElementById('ff-eur')?.value);
+  const fx=parseFloat(document.getElementById('ffx').value)||getFx(serial(CY,CM));
+  const cur=document.getElementById('fcur').value;
+  const auto=document.getElementById('ff-auto')?.value;
+  if(!eur||auto!=='lc')return;
+  const lc=cur==='USD'?eur*fx:eur;
+  if(document.getElementById('ff-lc'))document.getElementById('ff-lc').value=lc.toFixed(2);
+  onFormChange();
+}
+ 
+function getVal(id){const e=document.getElementById(id);return e?e.value:null;}
+function getNum(id){return parseFloat(getVal(id))||null;}
+ 
+function onFormChange(){
+  if(!fType)return;
+  const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
+  const date=getVal('fdate');
+  const cur=getVal('fcur')||'EUR';
+  const lc=getNum('ff-lc')||0;
+  const eur=getNum('ff-eur')||0;
+  const sh=getNum('ff-shares');
+  const pps=getNum('ff-pps');
+  const pm=getNum('ff-pm');
+  const proc=getNum('ff-proc');
+  const nav=getNum('ff-nav');
+  const fx=getNum('ffx')||getFx(dateToSerial(date||new Date().toISOString().slice(0,10)));
+  const s=date?dateToSerial(date):serial(CY,CM);
+  const existing=co&&co!=='— selecciona o escribe nombre —'?calcPos(co,s):null;
+  let rows=[];
+  if(co)rows.push(['Empresa',co]);
+  if(date)rows.push(['Fecha',fmtD(dateToSerial(date))]);
+  rows.push(['Tipo',TYPES.find(t=>t.id===fType)?.name||fType]);
+  rows.push(['Moneda',cur]);
+  if(lc>0)rows.push(['Importe LC',lc.toLocaleString('es-ES',{maximumFractionDigits:2})]);
+  if(eur>0)rows.push(['Importe EUR','€'+Math.round(eur).toLocaleString('es-ES')]);
+  if(sh)rows.push(['Acciones',Math.round(sh).toLocaleString('es-ES')]);
+  if(pps)rows.push(['PPS LC',pps.toLocaleString('es-ES',{maximumFractionDigits:4})]);
+  if(pm)rows.push(['Post-money LC',pm.toLocaleString('es-ES',{maximumFractionDigits:0})]);
+  if(proc)rows.push(['Proceeds','€'+Math.round(proc).toLocaleString('es-ES')]);
+  if(nav)rows.push(['NAV fondo LC',nav.toLocaleString('es-ES',{maximumFractionDigits:0})]);
+  if(fx)rows.push(['FX',fx.toFixed(4)]);
+  if(existing){
+    rows.push(['— situación actual —','']);
+    rows.push(['Coste actual','€'+Math.round(existing.costEur).toLocaleString('es-ES')]);
+    rows.push(['Valor actual','€'+Math.round(existing.valEur).toLocaleString('es-ES')]);
+    rows.push(['MOIC actual',existing.moic.toFixed(2)+'x']);
+    if(['eq','cn','follow'].includes(fType)&&eur>0)rows.push(['→ Nuevo coste','€'+Math.round(existing.costEur+eur).toLocaleString('es-ES')]);
+    if(fType==='val'&&pps){const nv=sh?(sh*pps)/(cur==='USD'?fx:1):(pps/(cur==='USD'?fx:1));rows.push(['→ Nuevo valor est.','€'+Math.round(nv).toLocaleString('es-ES')]);rows.push(['→ Nuevo MOIC',(existing.costEur>0?nv/existing.costEur:0).toFixed(2)+'x']);}
+    if(fType==='wo')rows.push(['→ Resultado','WRITE-OFF. Valor = €0']);
+    if(fType==='sale'&&proc)rows.push(['→ Proceeds totales','€'+Math.round(existing.procEur+proc).toLocaleString('es-ES')]);
+  }
+  const prev=document.getElementById('fprev');
+  document.getElementById('fprevtable').innerHTML=`<table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>`;
+  prev.style.display=rows.length>2?'block':'none';
+}
+ 
+function validateForm(){
+  const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
+  const date=getVal('fdate');
+  const errs=[];
+  if(!co||co==='— selecciona o escribe nombre —')errs.push('Selecciona o introduce una empresa');
+  if(!date)errs.push('Introduce una fecha');
+  if(!fType)errs.push('Selecciona el tipo de transacción');
+  const eur=getNum('ff-eur');
+  const lc=getNum('ff-lc');
+  const proc=getNum('ff-proc');
+  if(['eq','cn','fund'].includes(fType)&&!eur&&!lc&&!proc)errs.push('Introduce un importe (LC o EUR)');
+  if(fType==='sale'&&!proc)errs.push('Introduce los proceeds de la venta');
+  return errs;
+}
+ 
+async function saveTransaction(){
+  const errs=validateForm();
+  const errEl=document.getElementById('ferr');
+  const okEl=document.getElementById('fsaved');
+  const saveBtn=document.getElementById('fsave');
+  if(errs.length){errEl.textContent=errs.join(' · ');errEl.classList.add('show');return;}
+  errEl.classList.remove('show');
+ 
+  const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
+  const date=getVal('fdate');
+  const cur=getVal('fcur')||'EUR';
+  const fx=getNum('ffx')||getFx(dateToSerial(date));
+  const lc=getNum('ff-lc')||0;
+  const eur=getNum('ff-eur')||0;
+  const sh=getNum('ff-shares')||null;
+  const pps=getNum('ff-pps')||null;
+  const fd=getNum('ff-fd')||null;
+  const pm=getNum('ff-pm')||null;
+  const proc=getNum('ff-proc')||0;
+  const nav=getNum('ff-nav')||null;
+  const notes=getVal('ff-notes')||'';
+  const s=dateToSerial(date);
+  const valmode=getVal('ff-vm')||'pershare';
+  const ppsVal=fType==='fund'||fType==='dist'?nav:(fType==='val'&&valmode==='total'?lc||eur:pps);
+  const lcVal=fType==='dist'?0:lc;
+  const eurVal=fType==='dist'?0:eur;
+  const txn=[co,s,fType,lcVal,eurVal,sh,ppsVal,fd,cur==='USD'?fx:1,cur,pm,proc,notes];
+ 
+  // Añadir a META si es empresa nueva
+  if(!META[co]){
+    const country=prompt(`País de ${co}:`,'España')||'?';
+    const sector=prompt(`Sector de ${co}:`,'Fintech')||'?';
+    META[co]=[country,sector,cur];
+    // Actualizar el selector de empresa para futuros usos
+    refreshTxnSel(co);
+  }
+ 
+  // Guardar en Firestore (o en memoria si no hay conexión)
+  saveBtn.disabled=true;
+  saveBtn.textContent='Guardando…';
+ 
+  const result=await writeToFirestore(txn);
+ 
+  saveBtn.disabled=false;
+  saveBtn.textContent='Guardar en Firestore';
+ 
+  if(result.ok){
+    const where=result.local?'(sin conexión — solo local)':'en Firestore ✓';
+    okEl.textContent=`Guardado ${where}: ${co} — ${TYPES.find(t=>t.id===fType)?.name} — ${fmtD(s)}`;
+    okEl.classList.add('show');
+    setTimeout(()=>okEl.classList.remove('show'),4000);
+    refresh();
+  } else {
+    errEl.textContent='Error al guardar: '+result.error;
+    errEl.classList.add('show');
+  }
+}
+ 
+function refreshTxnSel(co){
+  const sel=document.getElementById('fco');
+  if(![...sel.options].some(o=>o.value===co)){
+    const o=document.createElement('option');o.value=co;o.textContent=co;
+    sel.insertBefore(o,sel.lastElementChild);
+  }
+}
+ 
+function resetForm(){
+  fType=null;
+  document.querySelectorAll('.ftype-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('ffields').style.display='none';
+  document.getElementById('fprev').style.display='none';
+  document.getElementById('ferr').classList.remove('show');
+  document.getElementById('fsaved').classList.remove('show');
+  document.getElementById('fdynamic').innerHTML='';
+  document.getElementById('fco').value='';
+  const td=new Date();
+  document.getElementById('fdate').value=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,'0')}-${String(td.getDate()).padStart(2,'0')}`;
+  document.getElementById('fcur').value='EUR';
+  document.getElementById('ffx').value='';
+  document.getElementById('ffx').parentElement.style.display='none';
+}
+ 
+// ════════════════════════════════════════════════════════════════
+// EVENTS & BOOT
+// ════════════════════════════════════════════════════════════════
+document.querySelectorAll('.nb[data-v]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('view-'+btn.dataset.v).classList.add('on');
+    if(btn.dataset.v==='transactions')renderTxns();
+  });
+});
+ 
+document.getElementById('ps').addEventListener('input',()=>renderPortfolio(getPortfolio(serial(CY,CM)),serial(CY,CM)));
+document.getElementById('pf').addEventListener('change',()=>renderPortfolio(getPortfolio(serial(CY,CM)),serial(CY,CM)));
+document.getElementById('ts').addEventListener('input',renderTxns);
+document.getElementById('tty').addEventListener('change',renderTxns);
+document.getElementById('cos').addEventListener('input',()=>{const s=serial(CY,CM);renderCoSel(getPortfolio(s),s);});
+document.getElementById('cof').addEventListener('change',()=>{const s=serial(CY,CM);renderCoSel(getPortfolio(s),s);});
+ 
+// ARRANQUE
+buildDateSel();
+buildForm();
+loadFromFirestore(); // ← carga Firestore y llama a refresh() al terminar
+</script>
+</body>
+</html>
