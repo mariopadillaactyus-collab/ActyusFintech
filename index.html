@@ -1,3 +1,6 @@
+
+Copiar
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1220,6 +1223,13 @@ function mkChart(id,type,data,opts){if(charts[id])charts[id].destroy();charts[id
 // ════════════════════════════════════════════════════════════════
 let CY=2026,CM=3,selCo=null;
 function serial(y,m){return Math.round((new Date(Date.UTC(y,m,0)).getTime()/864e5)+25569);}
+// Convierte "Q3'25" → serial del último día de ese trimestre
+function serialFromQ(q){
+  const [qn,yr]=q.split("'");
+  const y=2000+parseInt(yr);
+  const endM={'Q1':3,'Q2':6,'Q3':9,'Q4':12}[qn]||12;
+  return serial(y,endM);
+}
  
 // ════════════════════════════════════════════════════════════════
 // FONDO / NAV REAL
@@ -1433,30 +1443,65 @@ function renderPortfolio(pos,s){
 }
  
 function renderMetrics(pos,s){
-  const nav=pos.reduce((a,p)=>a+p.valEur,0);
-  const cost=pos.reduce((a,p)=>a+p.costEur,0);
-  const proc=pos.reduce((a,p)=>a+p.procEur,0);
-  const moic=cost>0?(nav+proc)/cost:0;
-  const dpi=cost>0?proc/cost:0;
-  const irr=fundXirr(s);
+  const nav  = pos.reduce((a,p)=>a+p.valEur,  0);
+  const cost = pos.reduce((a,p)=>a+p.costEur, 0);
+  const proc = pos.reduce((a,p)=>a+p.procEur, 0);
+  const irr  = fundXirr(s);
+ 
+  // ── Capital llamado ──
+  // Fuente 1: fundMeta guardado en Firestore (más exacto)
+  // Fuente 2: último entry de NAV_H con called (no necesita conversión de fecha)
+  // Fuente 3: coste invertido como proxy mínimo
+  const meta = getFundMeta(s);
+  const calledMeta = meta?.called ?? 0;
+  const calledNavH = (() => {
+    // Buscar el último NAV_H cuyo serial sea <= s, que tenga called
+    for (let i = NAV_H.length - 1; i >= 0; i--) {
+      if (NAV_H[i].called > 0 && NAV_H[i].s <= s) return NAV_H[i].called * 1e6;
+    }
+    // Si no hay coincidencia exacta, usar el mayor called disponible como fallback
+    const maxCalled = Math.max(...NAV_H.filter(h=>h.called>0).map(h=>h.called));
+    return maxCalled > 0 ? maxCalled * 1e6 : 0;
+  })();
+  const called = calledMeta > 0 ? calledMeta : (calledNavH > 0 ? calledNavH : cost);
+ 
+  // ── Métricas de fondo (usan capital llamado como denominador) ──
+  // MOIC  = (valor cartera + proc) / coste invertido  → nivel de cartera
+  // TVPI  = (valor cartera + proc) / capital llamado  → nivel de fondo
+  // DPI   = proc / capital llamado
+  // RVPI  = valor cartera / capital llamado  (TVPI - DPI)
+  const moic = cost   > 0 ? (nav + proc) / cost   : 0;
+  const tvpi = called > 0 ? (nav + proc) / called  : null;
+  const dpi  = called > 0 ? proc         / called  : null;
+  const rvpi = called > 0 ? nav           / called  : null;
+ 
+  const calledLabel = called > 0
+    ? `sobre €${(called/1e6).toFixed(1)}M llamado`
+    : '(entra capital llamado en Fondo/NAV)';
+ 
   document.getElementById('mkpis').innerHTML=[
-    {l:'Valor cartera',v:fEM(nav),s:'solo inversiones (sin caja/liabilities)',cl:'B'},
-    {l:'MOIC bruto',v:fM(moic),s:'total / coste',cl:'G'},
-    {l:'TIR bruta (est.)',v:irr?(irr*100).toFixed(1)+'%':'—',s:'XIRR sobre capital'},
-    {l:'TVPI',v:fM(moic),s:'total value paid-in'},
-    {l:'DPI',v:dpi.toFixed(2)+'x',s:fEM(proc)+' distribuido'},
-    {l:'Coste total',v:fEM(cost),s:'de €60M comprometido'},
+    {l:'Valor cartera (€)',  v:fEM(nav),                         s:'posiciones activas en EUR real', cl:'B'},
+    {l:'MOIC cartera',       v:fM(moic),                         s:'(cartera+proc) / coste invertido', cl:'G'},
+    {l:'TIR bruta (est.)',   v:irr?(irr*100).toFixed(1)+'%':'—', s:'XIRR sobre flujos en EUR'},
+    {l:'TVPI',               v:tvpi!=null?fM(tvpi):'—',          s:calledLabel},
+    {l:'DPI',                v:dpi!=null?dpi.toFixed(3)+'x':'—', s:proc>0?fEM(proc)+' distribuido':'sin distribuciones'},
+    {l:'RVPI',               v:rvpi!=null?fM(rvpi):'—',          s:'cartera / capital llamado'},
+    {l:'Coste invertido (€)',v:fEM(cost),                        s:'sum eurAmt transacciones'},
+    {l:'Capital llamado (€)',v:called>0?fEM(called):'— sin dato',s:called>0?`TVPI·DPI·RVPI calculados`:'introduce en Fondo/NAV'},
   ].map(c=>`<div class="kc ${c.cl||''}"><div class="lbl">${c.l}</div><div class="val">${c.v}</div><div class="sub">${c.s}</div></div>`).join('');
-  const nl=NAV_H.map(h=>h.q),nv=NAV_H.map(h=>h.nav),cv=NAV_H.map(h=>h.called);
+ 
+  const nl=NAV_H.map(h=>h.q), nv=NAV_H.map(h=>h.nav), cv=NAV_H.map(h=>h.called);
   mkChart('nvc','line',{labels:nl,datasets:[
     {label:'Valor cartera',data:nv,borderColor:'#3266ad',backgroundColor:'rgba(50,102,173,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2},
-    {label:'Capital',data:cv,borderColor:'#1d9e75',fill:false,tension:.1,pointRadius:2,borderWidth:1.5,borderDash:[5,4]}
+    {label:'Capital llamado',data:cv,borderColor:'#1d9e75',fill:false,tension:.1,pointRadius:2,borderWidth:1.5,borderDash:[5,4]}
   ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9},maxRotation:45},grid:{color:gc}},y:{ticks:{color:tc,font:{size:9},callback:v=>'€'+v+'M'},grid:{color:gc}}}});
+ 
   const id=NAV_H.filter(h=>h.tB);
   mkChart('irc','line',{labels:id.map(h=>h.q),datasets:[
     {label:'TIR bruta',data:id.map(h=>h.tB),borderColor:'#3266ad',fill:false,tension:.35,pointRadius:4,borderWidth:2},
-    {label:'TIR neta',data:id.map(h=>h.tN),borderColor:'#1d9e75',fill:false,tension:.35,pointRadius:4,borderWidth:2,borderDash:[5,4]}
+    {label:'TIR neta', data:id.map(h=>h.tN),borderColor:'#1d9e75',fill:false,tension:.35,pointRadius:4,borderWidth:2,borderDash:[5,4]}
   ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9}},grid:{color:gc}},y:{min:0,max:26,ticks:{color:tc,font:{size:9},callback:v=>v+'%'},grid:{color:gc}}}});
+ 
   document.getElementById('qtb').innerHTML=NAV_H.map((h,i)=>`<tr style="${i===NAV_H.length-1?'font-weight:500':''}">
     <td class="mo">${h.q}</td><td class="r mo">${h.nav}</td>
     <td class="r mo">${h.called?'€'+h.called+'M':'—'}</td>
@@ -1464,6 +1509,7 @@ function renderMetrics(pos,s){
     <td class="r mo" style="${h.tB&&h.tB>15?'color:var(--Gtx)':''}">${h.tB?h.tB.toFixed(1)+'%':'—'}</td>
     <td class="r mo" style="${h.tN&&h.tN>12?'color:var(--Gtx)':''}">${h.tN?h.tN.toFixed(1)+'%':'—'}</td>
   </tr>`).join('');
+ 
   const by=pos.filter(p=>p.costEur>500).sort((a,b)=>b.costEur-a.costEur).slice(0,10);
   mkChart('cc','doughnut',{labels:by.map(p=>p.co),datasets:[{data:by.map(p=>p.costEur),backgroundColor:PAL,borderWidth:0}]},
     {responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fEM(c.parsed)}`}}}});
