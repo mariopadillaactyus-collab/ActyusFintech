@@ -1,22 +1,19 @@
-
-Copiar
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Trident Fund I — Portfolio Manager</title>
- 
+
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
- 
+
 <!-- ═══════════════════════════════════════════════════════════
      FIREBASE SDK (compat mode — más sencillo para scripts inline)
      ═══════════════════════════════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
- 
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -34,7 +31,7 @@ Copiar
 }
 body{font-family:var(--font);background:var(--bg);color:var(--tx);font-size:13px}
 input,select,textarea{font-family:var(--font);font-size:13px}
- 
+
 /* ── LOADING OVERLAY ── */
 #overlay{
   position:fixed;inset:0;background:rgba(248,248,246,.95);
@@ -45,14 +42,14 @@ input,select,textarea{font-family:var(--font);font-size:13px}
 .spinner{width:30px;height:30px;border:3px solid var(--bd);border-top-color:var(--B);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #overlay p{font-size:12px;color:var(--mu);font-family:var(--mono)}
- 
+
 /* ── CONNECTION DOT ── */
 .conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .4s}
 .conn-dot.ok{background:#3b6d11}
 .conn-dot.err{background:#a32d2d}
 .conn-dot.wait{background:#ccc9c2;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
- 
+
 /* ── SEED BANNER ── */
 #seed-banner{
   display:none;
@@ -68,7 +65,7 @@ input,select,textarea{font-family:var(--font);font-size:13px}
   white-space:nowrap;
 }
 #seed-banner .btn-seed:hover{background:var(--Atx)}
- 
+
 /* ── LAYOUT ── */
 .app{display:grid;grid-template-rows:52px 1fr;height:100vh}
 .bar{background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:0 18px;position:sticky;top:0;z-index:100}
@@ -87,7 +84,7 @@ input,select,textarea{font-family:var(--font);font-size:13px}
 .nb .ic{width:16px;text-align:center;font-size:13px}
 .ndiv{height:1px;background:var(--bd);margin:6px 10px}
 .main{overflow-y:auto;padding:18px}
- 
+
 /* KPI CARDS */
 .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
 .kc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r8);padding:10px 12px}
@@ -95,7 +92,7 @@ input,select,textarea{font-family:var(--font);font-size:13px}
 .kc .val{font-size:20px;font-weight:500;font-family:var(--mono);line-height:1.1}
 .kc .sub{font-size:10px;color:var(--mu);margin-top:2px}
 .kc.B .val{color:var(--Btx)}.kc.G .val{color:var(--Gtx)}.kc.A .val{color:var(--Atx)}.kc.R .val{color:var(--Rtx)}
- 
+
 /* TABLES */
 .tw{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);overflow:hidden;margin-bottom:16px}
 .th{padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -109,7 +106,7 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:#f5f4f1}
 .cn{font-weight:500}.cs{font-size:10px;color:var(--mu)}
 .sx{overflow-x:auto}
- 
+
 /* BADGES */
 .badge{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap}
 .bG{background:var(--Gbg);color:var(--Gtx)}.bR{background:var(--Rbg);color:var(--Rtx)}
@@ -117,17 +114,17 @@ tr:hover td{background:#f5f4f1}
 .bP{background:var(--Pbg);color:var(--Ptx)}.bB{background:var(--Bbg);color:var(--Btx)}
 .bN{background:#f0ede8;color:#5f5e5a}
 .mc{color:var(--Gtx)}.md{color:var(--Rtx)}.mn{color:var(--mu)}
- 
+
 /* CHARTS */
 .cg{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
 .cb{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);padding:12px}
 .ct{font-size:10px;color:var(--mu);font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px}
- 
+
 /* FORM VIEWS */
 .view{display:none}.view.on{display:block}
 .ftitle{font-size:16px;font-weight:500;margin-bottom:4px}
 .fsub{font-size:12px;color:var(--mu);margin-bottom:20px}
- 
+
 /* FORM */
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .fgrid.w1{grid-template-columns:1fr}.fgrid.w3{grid-template-columns:1fr 1fr 1fr}
@@ -163,7 +160,7 @@ tr:hover td{background:#f5f4f1}
 .ferr.show{display:block}
 .fsaved{color:var(--Gtx);font-size:11px;background:var(--Gbg);padding:6px 10px;border-radius:var(--r4);display:none}
 .fsaved.show{display:block}
- 
+
 /* CO DETAIL */
 .cohead{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:14px}
 .coav{width:44px;height:44px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;flex-shrink:0}
@@ -171,36 +168,36 @@ tr:hover td{background:#f5f4f1}
 .dc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r8);padding:10px}
 .dc .dl{font-size:9px;color:var(--mu);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
 .dc .dv{font-size:15px;font-weight:500;font-family:var(--mono)}
- 
+
 /* FILTERS */
 .filt{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .filt input,.filt select{height:28px;padding:0 8px;border:1px solid var(--bd2);border-radius:var(--r4);font-size:11px;background:var(--card);color:var(--tx);outline:none}
 .filt .cnt{font-size:10px;color:var(--mu);margin-left:auto;font-family:var(--mono)}
 .tag{border:1px solid var(--bd2);border-radius:3px;padding:2px 7px;font-size:11px;color:var(--mu);background:var(--card)}
- 
+
 /* ASSET TYPE LEGEND */
 .aleg{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--mu);margin-bottom:12px;padding:8px 12px;background:var(--card);border:1px solid var(--bd);border-radius:var(--r8)}
 .aleg span{display:flex;align-items:center;gap:5px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
- 
+
 /* NOTE EXPLAIN BOX */
 .explain{background:#fffbf0;border:1px solid #f0c878;border-radius:var(--r8);padding:10px 12px;margin-bottom:12px;font-size:11px;color:#5c3d00}
 .explain strong{font-weight:600}
- 
+
 .pbar{height:3px;background:var(--bd);border-radius:2px;overflow:hidden;margin-top:3px}
 .pbf{height:100%;background:var(--B);border-radius:2px}
 </style>
 </head>
 <body>
- 
+
 <!-- ═══ LOADING OVERLAY ═══ -->
 <div id="overlay">
   <div class="spinner"></div>
   <p id="overlay-msg">Conectando con Firestore…</p>
 </div>
- 
+
 <div class="app">
- 
+
 <div class="bar">
   <div>
     <div class="sub">TRIDENT FUND I · IBEROAMÉRICA FINTECH</div>
@@ -219,7 +216,7 @@ tr:hover td{background:#f5f4f1}
     <select id="sY"></select>
   </div>
 </div>
- 
+
 <div class="body">
 <div class="side">
   <button class="nb on" data-v="portfolio"><span class="ic">◈</span> Portfolio</button>
@@ -231,9 +228,9 @@ tr:hover td{background:#f5f4f1}
   <button class="nb" data-v="transactions"><span class="ic">≡</span> Transacciones</button>
   <button class="nb add" data-v="newtxn"><span class="ic">+</span> Nueva transacción</button>
 </div>
- 
+
 <div class="main">
- 
+
 <!-- PORTFOLIO -->
 <div class="view on" id="view-portfolio">
   <!-- Seed banner (solo aparece la primera vez) -->
@@ -283,7 +280,7 @@ tr:hover td{background:#f5f4f1}
   </div>
   <div style="font-size:10px;color:var(--hi);text-align:right;font-family:var(--mono)" id="pfooter"></div>
 </div>
- 
+
 <!-- METRICS -->
 <div class="view" id="view-metrics">
   <div id="mkpis" class="kgrid"></div>
@@ -306,7 +303,7 @@ tr:hover td{background:#f5f4f1}
     </div>
   </div>
 </div>
- 
+
 <!-- COMPANY -->
 <div class="view" id="view-company">
   <div class="filt" style="margin-bottom:10px">
@@ -316,7 +313,7 @@ tr:hover td{background:#f5f4f1}
   <div id="cosel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
   <div id="codet"></div>
 </div>
- 
+
 <!-- TRANSACTIONS -->
 <div class="view" id="view-transactions">
   <div class="tw">
@@ -352,16 +349,16 @@ tr:hover td{background:#f5f4f1}
     </div>
   </div>
 </div>
- 
+
 <!-- FONDO / NAV -->
 <div class="view" id="view-fondo">
- 
+
   <div class="ftitle" style="margin-bottom:4px">Fondo — NAV completo</div>
   <div class="fsub">Capital llamado, caja disponible, liabilities y NAV real del fondo</div>
- 
+
   <!-- KPIs NAV breakdown -->
   <div id="fondo-kpis" class="kgrid" style="margin-bottom:12px"></div>
- 
+
   <!-- NAV Waterfall card -->
   <div class="fcard" style="margin-bottom:12px">
     <div class="fsec">Desglose NAV</div>
@@ -370,7 +367,7 @@ tr:hover td{background:#f5f4f1}
       <strong>Fórmula:</strong> NAV = Valor cartera (€) + Caja disponible − Liabilities − Gastos devengados pendientes
     </div>
   </div>
- 
+
   <!-- Form: actualizar datos del fondo para el corte actual -->
   <div class="fcard" style="margin-bottom:12px">
     <div class="fsec">Actualizar datos del fondo — <span id="fondo-corte-label"></span></div>
@@ -411,7 +408,7 @@ tr:hover td{background:#f5f4f1}
       <span class="fsaved" id="fm-ok"></span>
     </div>
   </div>
- 
+
   <!-- Histórico de datos del fondo -->
   <div class="tw">
     <div class="th"><span class="tt">Histórico fondo</span></div>
@@ -429,14 +426,14 @@ tr:hover td{background:#f5f4f1}
       <tbody id="fondo-hist"></tbody>
     </table>
   </div>
- 
+
 </div>
- 
+
 <!-- NEW TRANSACTION -->
 <div class="view" id="view-newtxn">
   <div class="ftitle">Nueva transacción</div>
   <div class="fsub">Registra una inversión, valoración, exit, write-off o movimiento de fondo</div>
- 
+
   <div class="fcard">
     <div class="fsec">1 — Empresa y fecha</div>
     <div class="fgrid">
@@ -469,7 +466,7 @@ tr:hover td{background:#f5f4f1}
       </div>
     </div>
   </div>
- 
+
   <div class="fcard">
     <div class="fsec">2 — Tipo de transacción</div>
     <div class="explain">
@@ -479,17 +476,17 @@ tr:hover td{background:#f5f4f1}
     </div>
     <div class="ftype-grid" id="ftypegrid"></div>
   </div>
- 
+
   <div class="fcard" id="ffields" style="display:none">
     <div class="fsec" id="ffsec">3 — Detalles de la transacción</div>
     <div id="fdynamic"></div>
   </div>
- 
+
   <div class="preview" id="fprev" style="display:none">
     <div class="ptitle">PREVISUALIZACIÓN — CÓMO QUEDARÁ LA POSICIÓN</div>
     <div id="fprevtable"></div>
   </div>
- 
+
   <div class="factions">
     <button class="btn pri" id="fsave">Guardar en Firestore</button>
     <button class="btn" id="freset">Limpiar</button>
@@ -497,11 +494,11 @@ tr:hover td{background:#f5f4f1}
     <span class="fsaved" id="fsaved"></span>
   </div>
 </div>
- 
+
 </div><!-- /main -->
 </div><!-- /body -->
 </div><!-- /app -->
- 
+
 <script>
 // ════════════════════════════════════════════════════════════════
 // ██████████████████████████████████████████████████████████████
@@ -526,14 +523,14 @@ const FB_CONFIG = {
   measurementId:     "G-B66VB4WS6D"
 };
 // ════════════════════════════════════════════════════════════════
- 
+
 const TXN_COL  = 'trident_transactions'; // transacciones de cartera
 const META_COL = 'trident_fund_meta';    // datos de fondo: caja, liabilities, NAV
- 
+
 // ── Inicializar Firebase ──
 let db = null;
 let firestoreOk = false;
- 
+
 // Comprobamos que el SDK se cargó antes de inicializar
 if (typeof firebase !== 'undefined') {
   try {
@@ -553,17 +550,17 @@ if (typeof firebase !== 'undefined') {
 } else {
   console.error('Firebase SDK no cargado. Revisa los scripts en el <head>.');
 }
- 
+
 // ── Cache en memoria ──
 let cachedTxns    = null; // transacciones de cartera
 let cachedFundMeta = [];  // datos del fondo [{date,called,cash,liab,expenses,navOfficial,notes}]
- 
+
 // ────────────────────────────────────────────────────────────────
 // CONVERTERS — entre array interno y documento Firestore
 // ────────────────────────────────────────────────────────────────
 // Array: [co, serial, type, lcAmt, eurAmt, shares, ppsLc, fdShares, fx, cur, postmoney_lc, proceeds_eur, notes]
 //         0    1       2     3      4       5       6      7         8   9    10             11            12
- 
+
 function txnToDoc(t) {
   return {
     company:     t[0]  ?? '',
@@ -583,7 +580,7 @@ function txnToDoc(t) {
     isBase:      false,
   };
 }
- 
+
 function docToTxn(doc) {
   const d = doc.data();
   return [
@@ -595,16 +592,16 @@ function docToTxn(doc) {
     d.notes ?? ''
   ];
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // FIRESTORE — Carga inicial (con reintento automático)
 // ────────────────────────────────────────────────────────────────
 let _loadRetries = 0;
- 
+
 async function loadFromFirestore() {
   setConn('wait', 'Conectando…');
   setOverlay(true, 'Conectando con Firestore…');
- 
+
   // SDK no cargado
   if (typeof firebase === 'undefined' || !db) {
     setConn('err', 'SDK no cargado');
@@ -612,14 +609,14 @@ async function loadFromFirestore() {
     cachedTxns = [...BASE_TXN];
     setOverlay(false); refresh(); return;
   }
- 
+
   try {
     // ── Cargar transacciones ──
     setOverlay(true, 'Cargando transacciones…');
     const snap = await db.collection(TXN_COL).orderBy('serial').get();
     firestoreOk = true;
     _loadRetries = 0;
- 
+
     if (snap.empty) {
       cachedTxns = [...BASE_TXN];
       document.getElementById('seed-banner').classList.add('show');
@@ -628,7 +625,7 @@ async function loadFromFirestore() {
       cachedTxns = snap.docs.map(docToTxn);
       setConn('ok', `Conectado · ${cachedTxns.length} tx`);
     }
- 
+
     // ── Cargar datos del fondo ──
     try {
       const metaSnap = await db.collection(META_COL).orderBy('date').get();
@@ -636,16 +633,16 @@ async function loadFromFirestore() {
     } catch(e) {
       cachedFundMeta = []; // no es crítico
     }
- 
+
   } catch (e) {
     console.error('Firestore load error:', e);
     firestoreOk = false;
     cachedTxns = [...BASE_TXN];
- 
+
     const code = (e.code || '').toLowerCase();
     const msg  = (e.message || '').toLowerCase();
     let diagMsg;
- 
+
     if (code.includes('permission-denied') || msg.includes('permission')) {
       diagMsg =
         '🚫 PERMISO DENEGADO — Las reglas de Firestore bloquean la lectura.\n\n' +
@@ -675,16 +672,16 @@ async function loadFromFirestore() {
     } else {
       diagMsg = `Error Firestore: ${e.code || ''} — ${e.message}`;
     }
- 
+
     setConn('err', `Error · ${e.code || 'desconocido'}`);
     showGlobalError(diagMsg);
     showRetryButton();
   }
- 
+
   setOverlay(false);
   refresh();
 }
- 
+
 function showRetryButton() {
   if (document.getElementById('retry-btn')) return;
   const btn = document.createElement('button');
@@ -696,7 +693,7 @@ function showRetryButton() {
   const vp = document.getElementById('view-portfolio');
   if (vp) vp.prepend(btn);
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // FIRESTORE — Seed (importar BASE_TXN la primera vez)
 // ────────────────────────────────────────────────────────────────
@@ -704,12 +701,12 @@ async function seedFirestore() {
   if (!db) { alert('Firebase no está inicializado. Revisa FB_CONFIG.'); return; }
   document.getElementById('seed-banner').classList.remove('show');
   setOverlay(true, `Importando ${BASE_TXN.length} transacciones a Firestore…`);
- 
+
   try {
     // Firestore limita batch a 500 ops — dividimos en chunks de 400
     const chunks = [];
     for (let i = 0; i < BASE_TXN.length; i += 400) chunks.push(BASE_TXN.slice(i, i + 400));
- 
+
     let done = 0;
     for (const chunk of chunks) {
       const batch = db.batch();
@@ -723,7 +720,7 @@ async function seedFirestore() {
       done += chunk.length;
       setOverlay(true, `Importadas ${done}/${BASE_TXN.length} transacciones…`);
     }
- 
+
     // Recargar desde Firestore para asegurar consistencia
     setOverlay(true, 'Verificando carga…');
     const snap = await db.collection(TXN_COL).orderBy('serial').get();
@@ -744,10 +741,10 @@ async function seedFirestore() {
     alert('No se pudo importar los datos:\n\n' + diagMsg);
     setOverlay(false);
   }
- 
+
   refresh();
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // FIRESTORE — Guardar nueva transacción
 // ────────────────────────────────────────────────────────────────
@@ -771,7 +768,7 @@ async function writeToFirestore(txnArray) {
     return { ok: false, error: e.message };
   }
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // FIRESTORE — Guardar datos del fondo
 // ────────────────────────────────────────────────────────────────
@@ -801,21 +798,21 @@ async function writeFundMeta(data) {
     return { ok: false, error: e.message };
   }
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // getTxns — fuente única de verdad para el motor
 // ────────────────────────────────────────────────────────────────
 function getTxns() {
   return cachedTxns ?? BASE_TXN;
 }
- 
+
 // getFundMeta — datos del fondo para un serial dado (el más reciente <= targetS)
 function getFundMeta(targetS) {
   if (!cachedFundMeta || !cachedFundMeta.length) return null;
   const eligible = cachedFundMeta.filter(m => m.date <= targetS);
   return eligible.length ? eligible[eligible.length - 1] : null;
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // UI helpers
 // ────────────────────────────────────────────────────────────────
@@ -824,14 +821,14 @@ function setOverlay(on, msg) {
   if (msg) document.getElementById('overlay-msg').textContent = msg;
   el.classList.toggle('hidden', !on);
 }
- 
+
 function setConn(state, label) {
   const dot = document.getElementById('conn-dot');
   const lbl = document.getElementById('conn-label');
   dot.className = 'conn-dot ' + state;
   lbl.textContent = label;
 }
- 
+
 function showGlobalError(msg) {
   // Evitar duplicados
   const existing = document.getElementById('global-err');
@@ -843,13 +840,13 @@ function showGlobalError(msg) {
   const portfolio = document.getElementById('view-portfolio');
   if (portfolio) portfolio.prepend(div);
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // DATA
 // ════════════════════════════════════════════════════════════════
 const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
              'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
- 
+
 const FX = {
   '2022-01':1.1314,'2022-02':1.1342,'2022-03':1.1019,'2022-04':1.0819,'2022-05':1.0578,'2022-06':1.0566,
   '2022-07':1.0179,'2022-08':1.0128,'2022-09':0.9904,'2022-10':0.9826,'2022-11':1.0201,'2022-12':1.0589,
@@ -861,7 +858,7 @@ const FX = {
   '2025-07':1.1677,'2025-08':1.1631,'2025-09':1.1732,'2025-10':1.1630,'2025-11':1.1560,'2025-12':1.1695,
   '2026-01':1.1919,'2026-02':1.1777,'2026-03':1.1553
 };
- 
+
 const FX_BRL = {
   '2022-01':5.4201,'2022-02':5.3910,'2022-03':5.3808,'2022-04':5.3498,'2022-05':5.3444,'2022-06':5.3321,
   '2022-07':5.3124,'2022-08':5.2967,'2022-09':5.2758,'2022-10':5.2678,'2022-11':5.2462,'2022-12':5.2230,
@@ -873,7 +870,7 @@ const FX_BRL = {
   '2025-07':5.8693,'2025-08':5.9067,'2025-09':5.9442,'2025-10':5.9888,'2025-11':6.0368,'2025-12':6.0742,
   '2026-01':6.0860,'2026-02':6.0618,'2026-03':6.0427,'2026-04':6.0163
 };
- 
+
 const META = {
   'MyInvestor':['España','Inversión','EUR'],'Creditas':['Brasil','Crédito','USD'],
   'Urbanitae':['España','Proptech','EUR'],'Boom':['EE.UU','Infraestructura','USD'],
@@ -900,7 +897,7 @@ const META = {
   'Hero Seguros':['Brasil','Insurtech','BRL'],
   'Dila IV':['México','Fondo','USD'],'Quona III':['Global','Fondo','USD'],'Fontes II':['Brasil','Fondo','USD'],
 };
- 
+
 const BASE_TXN = [
  ['Dila IV',44682,'eq',739767.94,706644.34,null,null,null,1.0469,'USD',null,0,''],
  ['Quona III',44682,'eq',638757.22,617731.97,null,null,null,1.034,'USD',null,0,'Conciliando con Q2 2025'],
@@ -1046,7 +1043,7 @@ const BASE_TXN = [
  ['Urbanitae',46094,'val',0,0,null,1140.01,null,1,'EUR',null,0,'pps val'],
  ['Zig',46139,'eq',187000,158950.0,null,982543.99,null,1.1765,'USD',null,0,'apmpliacion safe']
 ];
- 
+
 const NAV_H = [
  {q:"Q2'22",s:44742,nav:12.49,called:0,mB:null,tB:null,tN:null},
  {q:"Q3'22",s:44834,nav:12.50,called:0,mB:null,tB:null,tN:null},
@@ -1063,7 +1060,7 @@ const NAV_H = [
  {q:"Q2'25",s:45838,nav:37.79,called:37.5,mB:1.23,tB:null,tN:null},
  {q:"Q3'25",s:45930,nav:49.79,called:37.5,mB:1.23,tB:null,tN:null},
 ];
- 
+
 // ════════════════════════════════════════════════════════════════
 // ENGINE
 // ════════════════════════════════════════════════════════════════
@@ -1082,7 +1079,7 @@ function getFxBrl(s){
   return 6.0;
 }
 function fmtD(s){const d=xlDate(s);return`${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;}
- 
+
 function calcPos(co,targetS,allTxns){
   const txns=(allTxns||getTxns()).filter(t=>t[0]===co&&t[1]<=targetS).sort((a,b)=>a[1]-b[1]);
   if(!txns.length)return null;
@@ -1166,12 +1163,12 @@ function calcPos(co,targetS,allTxns){
   return{co,country:m[0],sector:m[1],currency:cur,costEur,valEur,procEur,pnl,moic,own,
     shares,lastPps,lastFd,noteBalEur,noteValOverride,hasNote,isFund,isWO,isExit,statusCode,txCount:txns.length,fxVal};
 }
- 
+
 function getPortfolio(targetS){
   const txns=getTxns();
   return[...new Set(txns.map(t=>t[0]))].map(co=>calcPos(co,targetS,txns)).filter(p=>p&&(p.costEur>0||p.valEur>0));
 }
- 
+
 function xirr(amounts,serials){
   if(amounts.length<2||!amounts.some(a=>a>0)||!amounts.some(a=>a<0))return null;
   const d0=serials[0],dy=serials.map(s=>(s-d0)/365);
@@ -1181,7 +1178,7 @@ function xirr(amounts,serials){
   for(let i=0;i<100;i++){const fr=f(r),dfr=df(r);if(Math.abs(dfr)<1e-14)break;const nr=r-fr/dfr;if(Math.abs(nr-r)<1e-10){r=nr;break;}r=Math.max(-0.999,Math.min(50,nr));}
   return isFinite(r)&&r>-1?r:null;
 }
- 
+
 function fundXirr(targetS){
   const txns=getTxns();const byDate={};
   txns.forEach(t=>{if(['eq','cn','fund','follow'].includes(t[2])&&t[4]>0)byDate[t[1]]=(byDate[t[1]]||0)+t[4];});
@@ -1193,7 +1190,7 @@ function fundXirr(targetS){
   ams.push(tv);sers.push(targetS);
   return xirr(ams,sers);
 }
- 
+
 function coXirr(co,targetS){
   const txns=getTxns().filter(t=>t[0]===co);
   const ams=[],sers=[];
@@ -1203,7 +1200,7 @@ function coXirr(co,targetS){
   ams.push(pos.valEur+pos.procEur);sers.push(targetS);
   return xirr(ams,sers);
 }
- 
+
 const fE=(n)=>n==null||isNaN(n)?'—':`€${Math.round(n).toLocaleString('es-ES')}`;
 const fEM=(n)=>n==null||isNaN(n)?'—':Math.abs(n)>=1e6?`€${(n/1e6).toFixed(1)}M`:Math.abs(n)>=1e3?`€${(n/1e3).toFixed(0)}k`:`€${Math.round(n)}`;
 const fM=(m)=>m==null||isNaN(m)?'—':`${m.toFixed(2)}x`;
@@ -1217,7 +1214,7 @@ const gc=isDark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
 const tc=isDark?'rgba(255,255,255,.5)':'rgba(0,0,0,.4)';
 const charts={};
 function mkChart(id,type,data,opts){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),{type,data,options:opts});return charts[id];}
- 
+
 // ════════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════════
@@ -1230,17 +1227,17 @@ function serialFromQ(q){
   const endM={'Q1':3,'Q2':6,'Q3':9,'Q4':12}[qn]||12;
   return serial(y,endM);
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // FONDO / NAV REAL
 // ════════════════════════════════════════════════════════════════
- 
+
 function renderFondo(pos, s) {
   // ── Valor cartera calculado ──
   const cartera = pos.reduce((a,p) => a + p.valEur, 0);
   const proc    = pos.reduce((a,p) => a + p.procEur, 0);
   const cost    = pos.reduce((a,p) => a + p.costEur, 0);
- 
+
   // ── Datos del fondo para el corte ──
   const meta = getFundMeta(s);
   const called    = meta?.called    ?? 0;
@@ -1248,12 +1245,13 @@ function renderFondo(pos, s) {
   const liab      = meta?.liab      ?? 0;
   const expenses  = meta?.expenses  ?? 0;
   const navOff    = meta?.navOfficial ?? null;
- 
-  // NAV calculado = cartera + proc + caja - liabilities - gastos pendientes
-  // (los gastos FTD son informativos; las liabilities incluyen lo pendiente de pagar)
-  const navCalc = cartera + proc + cash - liab;
+
+  // NAV = valor de posiciones vivas + caja en cuenta − liabilities devengadas
+  // Las distribuciones (proc) ya salieron del fondo → NO entran en NAV.
+  // El MOIC/TVPI sí las incluye porque miden el retorno total generado.
+  const navCalc = cartera + cash - liab;
   const moic    = cost > 0 ? (cartera + proc) / cost : 0;
- 
+
   // ── Rellenar formulario con valores actuales ──
   const d = xlDate(s);
   document.getElementById('fondo-corte-label').textContent =
@@ -1266,37 +1264,36 @@ function renderFondo(pos, s) {
     if (meta.navOfficial) document.getElementById('fm-nav-official').value = meta.navOfficial;
     if (meta.notes)       document.getElementById('fm-notes').value        = meta.notes;
   }
- 
+
   // ── KPIs ──
   const diff = navOff ? navCalc - navOff : null;
   document.getElementById('fondo-kpis').innerHTML = [
-    { l:'Valor cartera (€)',      v: fEM(cartera), s:'posiciones activas en EUR real', cl:'B' },
-    { l:'+ Proceeds (€)',         v: fEM(proc),    s:'exits + distribuciones' },
-    { l:'+ Caja disponible (€)',  v: cash > 0 ? fEM(cash) : '—', s: cash > 0 ? 'efectivo en cuenta' : 'sin dato' },
-    { l:'− Liabilities (€)',      v: liab > 0 ? fEM(-liab) : '—', s: liab > 0 ? 'fees + deudas devengadas' : 'sin dato', cl: liab > 0 ? 'R' : '' },
-    { l:'NAV calculado (€)',      v: cash > 0 || liab > 0 ? fEM(navCalc) : '≈ ' + fEM(cartera+proc),
-      s: cash > 0 || liab > 0 ? 'cartera + caja − liabilities' : 'sin caja ni liabilities', cl: 'G' },
+    { l:'Valor cartera (€)',     v: fEM(cartera), s:'posiciones activas en EUR real', cl:'B' },
+    { l:'+ Caja disponible (€)', v: cash > 0 ? fEM(cash) : '—', s: cash > 0 ? 'efectivo en cuenta del fondo' : 'sin dato — entra en Fondo/NAV' },
+    { l:'− Liabilities (€)',     v: liab > 0 ? fEM(-liab) : '—', s: liab > 0 ? 'fees devengadas + deudas' : 'sin dato', cl: liab > 0 ? 'R' : '' },
+    { l:'NAV estimado (€)',      v: cash > 0 || liab > 0 ? fEM(navCalc) : '≈ ' + fEM(cartera),
+      s: cash > 0 || liab > 0 ? 'cartera + caja − liabilities' : 'sin caja ni liabilities registradas', cl: 'G' },
     navOff
-      ? { l:'NAV oficial LP (€)', v: fEM(navOff), s: diff ? `Δ ${fEM(diff)} vs calculado` : '', cl: '' }
+      ? { l:'NAV oficial LP (€)', v: fEM(navOff), s: diff ? `Δ ${fEM(diff)} vs estimado` : 'sin diferencia', cl: '' }
       : { l:'Capital llamado (€)', v: called > 0 ? fEM(called) : '—', s: called > 0 ? `${((cartera/called)*100).toFixed(1)}% cartera/llamado` : 'sin dato' },
-    { l:'MOIC cartera',           v: fM(moic),    s:'(cartera+proc) / coste EUR' },
-    { l:'Gastos FTD (€)',         v: expenses > 0 ? fEM(expenses) : '—', s:'informativo, no resta del NAV aquí' },
+    { l:'Distribuciones (€)',    v: fEM(proc),   s:'ya fuera del fondo — no suma al NAV' },
+    { l:'MOIC cartera',          v: fM(moic),    s:'(cartera+distribuciones) / coste EUR' },
   ].map(c => `<div class="kc ${c.cl||''}">
     <div class="lbl">${c.l}</div>
     <div class="val">${c.v}</div>
     <div class="sub">${c.s}</div>
   </div>`).join('');
- 
+
   // ── Waterfall ──
   const rows = [
-    ['Valor de cartera',           cartera,              '#185fa5'],
-    ['+ Proceeds realizados',      proc,                 '#0f6e56'],
-    ['+ Caja disponible',          cash,                 '#3b6d11'],
-    ['− Liabilities devengadas',   -liab,                '#a32d2d'],
-    ['= NAV estimado',             navCalc,              '#534ab7'],
+    ['Valor de cartera',         cartera,  '#185fa5'],
+    ['+ Caja disponible',        cash,     '#3b6d11'],
+    ['− Liabilities devengadas', -liab,    '#a32d2d'],
+    ['= NAV estimado',           navCalc,  '#534ab7'],
   ];
-  if (navOff) rows.push(['NAV oficial LP report', navOff, '#854f0b']);
- 
+  if (proc > 0) rows.push(['(ref.) Distribuciones acumuladas', proc, '#854f0b']);
+  if (navOff)   rows.push(['NAV oficial LP report',            navOff, '#0f6e56']);
+
   document.getElementById('nav-waterfall').innerHTML = `
     <table style="width:100%;border-collapse:collapse;font-size:12px">
       ${rows.map(([label, val, col]) => `
@@ -1308,12 +1305,12 @@ function renderFondo(pos, s) {
           </td>
         </tr>`).join('')}
     </table>`;
- 
+
   // ── Histórico ──
   const hist = [...cachedFundMeta].sort((a,b) => b.date - a.date);
   document.getElementById('fondo-hist').innerHTML = hist.length
     ? hist.map(m => {
-        const nav = (m.cartera||0) + (m.proc||0) + (m.cash||0) - (m.liab||0);
+        const nav = (m.carteraCalc||0) + (m.cash||0) - (m.liab||0);
         return `<tr>
           <td class="mo">${fmtD(m.date)}</td>
           <td class="r mo">${m.called ? fEM(m.called) : '—'}</td>
@@ -1329,7 +1326,7 @@ function renderFondo(pos, s) {
          Sin datos de fondo registrados. Rellena el formulario y guarda para el corte actual.
        </td></tr>`;
 }
- 
+
 // ── Guardar datos del fondo ──
 async function saveFundMeta() {
   const s = serial(CY, CM);
@@ -1339,12 +1336,12 @@ async function saveFundMeta() {
   const expenses = parseFloat(document.getElementById('fm-expenses').value)     || 0;
   const navOff   = parseFloat(document.getElementById('fm-nav-official').value) || 0;
   const notes    = document.getElementById('fm-notes').value || '';
- 
+
   // Calculamos el valor de cartera en ese corte para guardarlo como histórico
   const pos = getPortfolio(s);
   const carteraCalc = pos.reduce((a,p) => a + p.valEur, 0);
   const procCalc    = pos.reduce((a,p) => a + p.procEur, 0);
- 
+
   const data = {
     date: s,
     called, cash, liab, expenses,
@@ -1352,11 +1349,11 @@ async function saveFundMeta() {
     carteraCalc, procCalc,
     notes,
   };
- 
+
   const errEl = document.getElementById('fm-err');
   const okEl  = document.getElementById('fm-ok');
   errEl.classList.remove('show');
- 
+
   const res = await writeFundMeta(data);
   if (res.ok) {
     okEl.textContent = res.local
@@ -1370,7 +1367,7 @@ async function saveFundMeta() {
     errEl.classList.add('show');
   }
 }
- 
+
 function buildDateSel(){
   const sM=document.getElementById('sM'),sY=document.getElementById('sY');
   MES.forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m;sM.appendChild(o);});
@@ -1379,13 +1376,13 @@ function buildDateSel(){
   const ch=()=>{CM=+sM.value;CY=+sY.value;refresh();};
   sM.addEventListener('change',ch);sY.addEventListener('change',ch);
 }
- 
+
 function refresh(){
   const s=serial(CY,CM),pos=getPortfolio(s);
   renderBar(pos,s);renderPortfolio(pos,s);renderMetrics(pos,s);renderCoSel(pos,s);
   if(document.getElementById('view-fondo').classList.contains('on'))renderFondo(pos,s);
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // VIEWS
 // ════════════════════════════════════════════════════════════════
@@ -1399,7 +1396,7 @@ function renderBar(pos,s){
     ['FX',getFx(s).toFixed(4)],
   ].map(([l,v])=>`<div><div style="font-size:9px;color:var(--mu)">${l}</div><div style="font-weight:500">${v}</div></div>`).join('');
 }
- 
+
 function renderPortfolio(pos,s){
   const nav=pos.reduce((a,p)=>a+p.valEur,0);
   const cost=pos.reduce((a,p)=>a+p.costEur,0);
@@ -1441,13 +1438,13 @@ function renderPortfolio(pos,s){
   mkChart('gc','doughnut',{labels:ge.map(e=>e[0]),datasets:[{data:ge.map(e=>e[1]),backgroundColor:PAL,borderWidth:0}]},dopts);
   mkChart('sc','doughnut',{labels:se.map(e=>e[0]),datasets:[{data:se.map(e=>e[1]),backgroundColor:PAL,borderWidth:0}]},dopts);
 }
- 
+
 function renderMetrics(pos,s){
   const nav  = pos.reduce((a,p)=>a+p.valEur,  0);
   const cost = pos.reduce((a,p)=>a+p.costEur, 0);
   const proc = pos.reduce((a,p)=>a+p.procEur, 0);
   const irr  = fundXirr(s);
- 
+
   // ── Capital llamado ──
   // Fuente 1: fundMeta guardado en Firestore (más exacto)
   // Fuente 2: último entry de NAV_H con called (no necesita conversión de fecha)
@@ -1464,7 +1461,7 @@ function renderMetrics(pos,s){
     return maxCalled > 0 ? maxCalled * 1e6 : 0;
   })();
   const called = calledMeta > 0 ? calledMeta : (calledNavH > 0 ? calledNavH : cost);
- 
+
   // ── Métricas de fondo (usan capital llamado como denominador) ──
   // MOIC  = (valor cartera + proc) / coste invertido  → nivel de cartera
   // TVPI  = (valor cartera + proc) / capital llamado  → nivel de fondo
@@ -1474,11 +1471,11 @@ function renderMetrics(pos,s){
   const tvpi = called > 0 ? (nav + proc) / called  : null;
   const dpi  = called > 0 ? proc         / called  : null;
   const rvpi = called > 0 ? nav           / called  : null;
- 
+
   const calledLabel = called > 0
     ? `sobre €${(called/1e6).toFixed(1)}M llamado`
     : '(entra capital llamado en Fondo/NAV)';
- 
+
   document.getElementById('mkpis').innerHTML=[
     {l:'Valor cartera (€)',  v:fEM(nav),                         s:'posiciones activas en EUR real', cl:'B'},
     {l:'MOIC cartera',       v:fM(moic),                         s:'(cartera+proc) / coste invertido', cl:'G'},
@@ -1489,19 +1486,19 @@ function renderMetrics(pos,s){
     {l:'Coste invertido (€)',v:fEM(cost),                        s:'sum eurAmt transacciones'},
     {l:'Capital llamado (€)',v:called>0?fEM(called):'— sin dato',s:called>0?`TVPI·DPI·RVPI calculados`:'introduce en Fondo/NAV'},
   ].map(c=>`<div class="kc ${c.cl||''}"><div class="lbl">${c.l}</div><div class="val">${c.v}</div><div class="sub">${c.s}</div></div>`).join('');
- 
+
   const nl=NAV_H.map(h=>h.q), nv=NAV_H.map(h=>h.nav), cv=NAV_H.map(h=>h.called);
   mkChart('nvc','line',{labels:nl,datasets:[
     {label:'Valor cartera',data:nv,borderColor:'#3266ad',backgroundColor:'rgba(50,102,173,.08)',fill:true,tension:.35,pointRadius:3,borderWidth:2},
     {label:'Capital llamado',data:cv,borderColor:'#1d9e75',fill:false,tension:.1,pointRadius:2,borderWidth:1.5,borderDash:[5,4]}
   ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9},maxRotation:45},grid:{color:gc}},y:{ticks:{color:tc,font:{size:9},callback:v=>'€'+v+'M'},grid:{color:gc}}}});
- 
+
   const id=NAV_H.filter(h=>h.tB);
   mkChart('irc','line',{labels:id.map(h=>h.q),datasets:[
     {label:'TIR bruta',data:id.map(h=>h.tB),borderColor:'#3266ad',fill:false,tension:.35,pointRadius:4,borderWidth:2},
     {label:'TIR neta', data:id.map(h=>h.tN),borderColor:'#1d9e75',fill:false,tension:.35,pointRadius:4,borderWidth:2,borderDash:[5,4]}
   ]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9}},grid:{color:gc}},y:{min:0,max:26,ticks:{color:tc,font:{size:9},callback:v=>v+'%'},grid:{color:gc}}}});
- 
+
   document.getElementById('qtb').innerHTML=NAV_H.map((h,i)=>`<tr style="${i===NAV_H.length-1?'font-weight:500':''}">
     <td class="mo">${h.q}</td><td class="r mo">${h.nav}</td>
     <td class="r mo">${h.called?'€'+h.called+'M':'—'}</td>
@@ -1509,13 +1506,13 @@ function renderMetrics(pos,s){
     <td class="r mo" style="${h.tB&&h.tB>15?'color:var(--Gtx)':''}">${h.tB?h.tB.toFixed(1)+'%':'—'}</td>
     <td class="r mo" style="${h.tN&&h.tN>12?'color:var(--Gtx)':''}">${h.tN?h.tN.toFixed(1)+'%':'—'}</td>
   </tr>`).join('');
- 
+
   const by=pos.filter(p=>p.costEur>500).sort((a,b)=>b.costEur-a.costEur).slice(0,10);
   mkChart('cc','doughnut',{labels:by.map(p=>p.co),datasets:[{data:by.map(p=>p.costEur),backgroundColor:PAL,borderWidth:0}]},
     {responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fEM(c.parsed)}`}}}});
   document.getElementById('ccleg').innerHTML=by.map((p,i)=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:2px;background:${PAL[i]};flex-shrink:0"></span>${p.co}</span>`).join('');
 }
- 
+
 function renderCoSel(pos,s){
   const q=(document.getElementById('cos').value||'').toLowerCase();
   const cf=document.getElementById('cof').value;
@@ -1533,7 +1530,7 @@ function renderCoSel(pos,s){
   if(selCo){const p=pos.find(x=>x.co===selCo);if(p)renderCoDet(p,s);}
 }
 function pickCo(co,s){selCo=co;const pos=getPortfolio(s);renderCoSel(pos,s);}
- 
+
 function renderCoDet(pos,s){
   const init=pos.co.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const colors=['#3266ad','#1d9e75','#ba7517','#993c1d','#534ab7','#d85a30'];
@@ -1589,7 +1586,7 @@ function renderCoDet(pos,s){
     </table></div>
   </div>`;
 }
- 
+
 function renderTxns(){
   const q=(document.getElementById('ts').value||'').toLowerCase();
   const tf=document.getElementById('tty').value;
@@ -1616,11 +1613,11 @@ function renderTxns(){
     </tr>`;
   }).join('');
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // TRANSACTION ENTRY FORM
 // ════════════════════════════════════════════════════════════════
- 
+
 const TYPES=[
   {id:'eq',icon:'◈',name:'Equity',desc:'Compra directa de acciones',fields:['shares','pps','fd','postmoney','notes']},
   {id:'cn',icon:'◇',name:'Nota convertible / SAFE',desc:'Préstamo con conversión futura',fields:['discount','cap','floor','maturity','interest','notes']},
@@ -1631,9 +1628,9 @@ const TYPES=[
   {id:'fund',icon:'◫',name:'Fondo — capital call',desc:'Aportación a fondo LP',fields:['fundnav','notes']},
   {id:'dist',icon:'←',name:'Fondo — distribución',desc:'Distribución recibida de fondo LP',fields:['proceeds','fundnav','notes']},
 ];
- 
+
 let fType=null;
- 
+
 function buildForm(){
   const sel=document.getElementById('fco');
   const cos=[...new Set(BASE_TXN.map(t=>t[0]))].sort();
@@ -1669,12 +1666,12 @@ function buildForm(){
   document.getElementById('fsave').addEventListener('click',saveTransaction);
   document.getElementById('freset').addEventListener('click',resetForm);
 }
- 
+
 function dateToSerial(dateStr){
   const d=new Date(dateStr+'T00:00:00Z');
   return Math.round((d.getTime()/864e5)+25569);
 }
- 
+
 function setFType(t){
   fType=t;
   document.querySelectorAll('.ftype-btn').forEach(b=>b.classList.toggle('sel',b.dataset.t===t));
@@ -1682,7 +1679,7 @@ function setFType(t){
   document.getElementById('ffields').style.display='block';
   onFormChange();
 }
- 
+
 const FIELD_HTML={
   shares:`<div class="fg"><label>Número de acciones adquiridas</label><input type="number" id="ff-shares" step="1" min="0" placeholder="ej: 50000"></div>`,
   pps:`<div class="fg"><label>PPS en moneda local</label><input type="number" id="ff-pps" step="any" placeholder="ej: 12.50"></div>`,
@@ -1698,14 +1695,14 @@ const FIELD_HTML={
   fundnav:`<div class="fg"><label>NAV del fondo a esta fecha (LC)</label><input type="number" id="ff-nav" step="any" placeholder="ej: 750000"></div>`,
   notes:`<div class="fg" style="grid-column:1/-1"><label>Notas / términos</label><textarea id="ff-notes" rows="2" placeholder="Términos relevantes, rationale…"></textarea></div>`,
 };
- 
+
 const AMOUNT_HTML=`
   <div class="fgrid w3">
     <div class="fg"><label>Importe en moneda local (LC)</label><input type="number" id="ff-lc" step="any" min="0" placeholder="ej: 1000000" oninput="autoCalcEur()"></div>
     <div class="fg"><label>Importe en EUR</label><input type="number" id="ff-eur" step="any" min="0" placeholder="ej: 950000" oninput="autoCalcLc()"></div>
     <div class="fg"><label>¿Auto-calcular?</label><select id="ff-auto"><option value="eur">Calcular EUR desde LC</option><option value="lc">Calcular LC desde EUR</option><option value="none">Manual</option></select></div>
   </div>`;
- 
+
 function renderDynFields(t){
   const cfg=TYPES.find(x=>x.id===t);
   if(!cfg)return;
@@ -1723,7 +1720,7 @@ function renderDynFields(t){
   });
   autoCalcEur();onFormChange();
 }
- 
+
 function autoCalcEur(){
   const lc=parseFloat(document.getElementById('ff-lc')?.value);
   const fx=parseFloat(document.getElementById('ffx').value)||getFx(dateToSerial(document.getElementById('fdate').value||new Date().toISOString().slice(0,10)));
@@ -1736,7 +1733,7 @@ function autoCalcEur(){
   if(sh&&lc&&document.getElementById('ff-pps'))document.getElementById('ff-pps').value=(lc/sh).toFixed(6);
   onFormChange();
 }
- 
+
 function autoCalcLc(){
   const eur=parseFloat(document.getElementById('ff-eur')?.value);
   const fx=parseFloat(document.getElementById('ffx').value)||getFx(serial(CY,CM));
@@ -1747,10 +1744,10 @@ function autoCalcLc(){
   if(document.getElementById('ff-lc'))document.getElementById('ff-lc').value=lc.toFixed(2);
   onFormChange();
 }
- 
+
 function getVal(id){const e=document.getElementById(id);return e?e.value:null;}
 function getNum(id){return parseFloat(getVal(id))||null;}
- 
+
 function onFormChange(){
   if(!fType)return;
   const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
@@ -1793,7 +1790,7 @@ function onFormChange(){
   document.getElementById('fprevtable').innerHTML=`<table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>`;
   prev.style.display=rows.length>2?'block':'none';
 }
- 
+
 function validateForm(){
   const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
   const date=getVal('fdate');
@@ -1808,7 +1805,7 @@ function validateForm(){
   if(fType==='sale'&&!proc)errs.push('Introduce los proceeds de la venta');
   return errs;
 }
- 
+
 async function saveTransaction(){
   const errs=validateForm();
   const errEl=document.getElementById('ferr');
@@ -1816,7 +1813,7 @@ async function saveTransaction(){
   const saveBtn=document.getElementById('fsave');
   if(errs.length){errEl.textContent=errs.join(' · ');errEl.classList.add('show');return;}
   errEl.classList.remove('show');
- 
+
   const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
   const date=getVal('fdate');
   const cur=getVal('fcur')||'EUR';
@@ -1836,7 +1833,7 @@ async function saveTransaction(){
   const lcVal=fType==='dist'?0:lc;
   const eurVal=fType==='dist'?0:eur;
   const txn=[co,s,fType,lcVal,eurVal,sh,ppsVal,fd,cur==='USD'?fx:1,cur,pm,proc,notes];
- 
+
   // Añadir a META si es empresa nueva
   if(!META[co]){
     const country=prompt(`País de ${co}:`,'España')||'?';
@@ -1845,16 +1842,16 @@ async function saveTransaction(){
     // Actualizar el selector de empresa para futuros usos
     refreshTxnSel(co);
   }
- 
+
   // Guardar en Firestore (o en memoria si no hay conexión)
   saveBtn.disabled=true;
   saveBtn.textContent='Guardando…';
- 
+
   const result=await writeToFirestore(txn);
- 
+
   saveBtn.disabled=false;
   saveBtn.textContent='Guardar en Firestore';
- 
+
   if(result.ok){
     const where=result.local?'(sin conexión — solo local)':'en Firestore ✓';
     okEl.textContent=`Guardado ${where}: ${co} — ${TYPES.find(t=>t.id===fType)?.name} — ${fmtD(s)}`;
@@ -1866,7 +1863,7 @@ async function saveTransaction(){
     errEl.classList.add('show');
   }
 }
- 
+
 function refreshTxnSel(co){
   const sel=document.getElementById('fco');
   if(![...sel.options].some(o=>o.value===co)){
@@ -1874,7 +1871,7 @@ function refreshTxnSel(co){
     sel.insertBefore(o,sel.lastElementChild);
   }
 }
- 
+
 function resetForm(){
   fType=null;
   document.querySelectorAll('.ftype-btn').forEach(b=>b.classList.remove('sel'));
@@ -1890,7 +1887,7 @@ function resetForm(){
   document.getElementById('ffx').value='';
   document.getElementById('ffx').parentElement.style.display='none';
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // EVENTS & BOOT
 // ════════════════════════════════════════════════════════════════
@@ -1904,7 +1901,7 @@ document.querySelectorAll('.nb[data-v]').forEach(btn=>{
     if(btn.dataset.v==='fondo'){const s=serial(CY,CM);renderFondo(getPortfolio(s),s);}
   });
 });
- 
+
 document.getElementById('ps').addEventListener('input',()=>renderPortfolio(getPortfolio(serial(CY,CM)),serial(CY,CM)));
 document.getElementById('pf').addEventListener('change',()=>renderPortfolio(getPortfolio(serial(CY,CM)),serial(CY,CM)));
 document.getElementById('ts').addEventListener('input',renderTxns);
@@ -1912,7 +1909,7 @@ document.getElementById('tty').addEventListener('change',renderTxns);
 document.getElementById('cos').addEventListener('input',()=>{const s=serial(CY,CM);renderCoSel(getPortfolio(s),s);});
 document.getElementById('cof').addEventListener('change',()=>{const s=serial(CY,CM);renderCoSel(getPortfolio(s),s);});
 document.getElementById('fm-save').addEventListener('click', saveFundMeta);
- 
+
 // ARRANQUE
 buildDateSel();
 buildForm();
