@@ -1,21 +1,19 @@
-Copiar
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Trident Fund I — Portfolio Manager</title>
- 
+
 <!-- Chart.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
- 
+
 <!-- ═══════════════════════════════════════════════════════════
      FIREBASE SDK (compat mode — más sencillo para scripts inline)
      ═══════════════════════════════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
- 
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -33,7 +31,7 @@ Copiar
 }
 body{font-family:var(--font);background:var(--bg);color:var(--tx);font-size:13px}
 input,select,textarea{font-family:var(--font);font-size:13px}
- 
+
 /* ── LOADING OVERLAY ── */
 #overlay{
   position:fixed;inset:0;background:rgba(248,248,246,.95);
@@ -44,14 +42,14 @@ input,select,textarea{font-family:var(--font);font-size:13px}
 .spinner{width:30px;height:30px;border:3px solid var(--bd);border-top-color:var(--B);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #overlay p{font-size:12px;color:var(--mu);font-family:var(--mono)}
- 
+
 /* ── CONNECTION DOT ── */
 .conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .4s}
 .conn-dot.ok{background:#3b6d11}
 .conn-dot.err{background:#a32d2d}
 .conn-dot.wait{background:#ccc9c2;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
- 
+
 /* ── SEED BANNER ── */
 #seed-banner{
   display:none;
@@ -67,7 +65,7 @@ input,select,textarea{font-family:var(--font);font-size:13px}
   white-space:nowrap;
 }
 #seed-banner .btn-seed:hover{background:var(--Atx)}
- 
+
 /* ── LAYOUT ── */
 .app{display:grid;grid-template-rows:52px 1fr;height:100vh}
 .bar{background:var(--card);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;padding:0 18px;position:sticky;top:0;z-index:100}
@@ -86,7 +84,7 @@ input,select,textarea{font-family:var(--font);font-size:13px}
 .nb .ic{width:16px;text-align:center;font-size:13px}
 .ndiv{height:1px;background:var(--bd);margin:6px 10px}
 .main{overflow-y:auto;padding:18px}
- 
+
 /* KPI CARDS */
 .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
 .kc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r8);padding:10px 12px}
@@ -94,7 +92,7 @@ input,select,textarea{font-family:var(--font);font-size:13px}
 .kc .val{font-size:20px;font-weight:500;font-family:var(--mono);line-height:1.1}
 .kc .sub{font-size:10px;color:var(--mu);margin-top:2px}
 .kc.B .val{color:var(--Btx)}.kc.G .val{color:var(--Gtx)}.kc.A .val{color:var(--Atx)}.kc.R .val{color:var(--Rtx)}
- 
+
 /* TABLES */
 .tw{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);overflow:hidden;margin-bottom:16px}
 .th{padding:10px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -108,7 +106,7 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:#f5f4f1}
 .cn{font-weight:500}.cs{font-size:10px;color:var(--mu)}
 .sx{overflow-x:auto}
- 
+
 /* BADGES */
 .badge{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap}
 .bG{background:var(--Gbg);color:var(--Gtx)}.bR{background:var(--Rbg);color:var(--Rtx)}
@@ -116,17 +114,17 @@ tr:hover td{background:#f5f4f1}
 .bP{background:var(--Pbg);color:var(--Ptx)}.bB{background:var(--Bbg);color:var(--Btx)}
 .bN{background:#f0ede8;color:#5f5e5a}
 .mc{color:var(--Gtx)}.md{color:var(--Rtx)}.mn{color:var(--mu)}
- 
+
 /* CHARTS */
 .cg{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px}
 .cb{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);padding:12px}
 .ct{font-size:10px;color:var(--mu);font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px}
- 
+
 /* FORM VIEWS */
 .view{display:none}.view.on{display:block}
 .ftitle{font-size:16px;font-weight:500;margin-bottom:4px}
 .fsub{font-size:12px;color:var(--mu);margin-bottom:20px}
- 
+
 /* FORM */
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .fgrid.w1{grid-template-columns:1fr}.fgrid.w3{grid-template-columns:1fr 1fr 1fr}
@@ -162,7 +160,7 @@ tr:hover td{background:#f5f4f1}
 .ferr.show{display:block}
 .fsaved{color:var(--Gtx);font-size:11px;background:var(--Gbg);padding:6px 10px;border-radius:var(--r4);display:none}
 .fsaved.show{display:block}
- 
+
 /* CO DETAIL */
 .cohead{background:var(--card);border:1px solid var(--bd);border-radius:var(--r12);padding:14px;margin-bottom:12px;display:flex;align-items:center;gap:14px}
 .coav{width:44px;height:44px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;flex-shrink:0}
@@ -170,36 +168,36 @@ tr:hover td{background:#f5f4f1}
 .dc{background:var(--card);border:1px solid var(--bd);border-radius:var(--r8);padding:10px}
 .dc .dl{font-size:9px;color:var(--mu);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
 .dc .dv{font-size:15px;font-weight:500;font-family:var(--mono)}
- 
+
 /* FILTERS */
 .filt{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .filt input,.filt select{height:28px;padding:0 8px;border:1px solid var(--bd2);border-radius:var(--r4);font-size:11px;background:var(--card);color:var(--tx);outline:none}
 .filt .cnt{font-size:10px;color:var(--mu);margin-left:auto;font-family:var(--mono)}
 .tag{border:1px solid var(--bd2);border-radius:3px;padding:2px 7px;font-size:11px;color:var(--mu);background:var(--card)}
- 
+
 /* ASSET TYPE LEGEND */
 .aleg{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--mu);margin-bottom:12px;padding:8px 12px;background:var(--card);border:1px solid var(--bd);border-radius:var(--r8)}
 .aleg span{display:flex;align-items:center;gap:5px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
- 
+
 /* NOTE EXPLAIN BOX */
 .explain{background:#fffbf0;border:1px solid #f0c878;border-radius:var(--r8);padding:10px 12px;margin-bottom:12px;font-size:11px;color:#5c3d00}
 .explain strong{font-weight:600}
- 
+
 .pbar{height:3px;background:var(--bd);border-radius:2px;overflow:hidden;margin-top:3px}
 .pbf{height:100%;background:var(--B);border-radius:2px}
 </style>
 </head>
 <body>
- 
+
 <!-- ═══ LOADING OVERLAY ═══ -->
 <div id="overlay">
   <div class="spinner"></div>
   <p id="overlay-msg">Conectando con Firestore…</p>
 </div>
- 
+
 <div class="app">
- 
+
 <div class="bar">
   <div>
     <div class="sub">TRIDENT FUND I · IBEROAMÉRICA FINTECH</div>
@@ -218,7 +216,7 @@ tr:hover td{background:#f5f4f1}
     <select id="sY"></select>
   </div>
 </div>
- 
+
 <div class="body">
 <div class="side">
   <button class="nb on" data-v="portfolio"><span class="ic">◈</span> Portfolio</button>
@@ -228,9 +226,9 @@ tr:hover td{background:#f5f4f1}
   <button class="nb" data-v="transactions"><span class="ic">≡</span> Transacciones</button>
   <button class="nb add" data-v="newtxn"><span class="ic">+</span> Nueva transacción</button>
 </div>
- 
+
 <div class="main">
- 
+
 <!-- PORTFOLIO -->
 <div class="view on" id="view-portfolio">
   <!-- Seed banner (solo aparece la primera vez) -->
@@ -280,7 +278,7 @@ tr:hover td{background:#f5f4f1}
   </div>
   <div style="font-size:10px;color:var(--hi);text-align:right;font-family:var(--mono)" id="pfooter"></div>
 </div>
- 
+
 <!-- METRICS -->
 <div class="view" id="view-metrics">
   <div id="mkpis" class="kgrid"></div>
@@ -303,7 +301,7 @@ tr:hover td{background:#f5f4f1}
     </div>
   </div>
 </div>
- 
+
 <!-- COMPANY -->
 <div class="view" id="view-company">
   <div class="filt" style="margin-bottom:10px">
@@ -313,7 +311,7 @@ tr:hover td{background:#f5f4f1}
   <div id="cosel" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
   <div id="codet"></div>
 </div>
- 
+
 <!-- TRANSACTIONS -->
 <div class="view" id="view-transactions">
   <div class="tw">
@@ -349,12 +347,12 @@ tr:hover td{background:#f5f4f1}
     </div>
   </div>
 </div>
- 
+
 <!-- NEW TRANSACTION -->
 <div class="view" id="view-newtxn">
   <div class="ftitle">Nueva transacción</div>
   <div class="fsub">Registra una inversión, valoración, exit, write-off o movimiento de fondo</div>
- 
+
   <div class="fcard">
     <div class="fsec">1 — Empresa y fecha</div>
     <div class="fgrid">
@@ -387,7 +385,7 @@ tr:hover td{background:#f5f4f1}
       </div>
     </div>
   </div>
- 
+
   <div class="fcard">
     <div class="fsec">2 — Tipo de transacción</div>
     <div class="explain">
@@ -397,17 +395,17 @@ tr:hover td{background:#f5f4f1}
     </div>
     <div class="ftype-grid" id="ftypegrid"></div>
   </div>
- 
+
   <div class="fcard" id="ffields" style="display:none">
     <div class="fsec" id="ffsec">3 — Detalles de la transacción</div>
     <div id="fdynamic"></div>
   </div>
- 
+
   <div class="preview" id="fprev" style="display:none">
     <div class="ptitle">PREVISUALIZACIÓN — CÓMO QUEDARÁ LA POSICIÓN</div>
     <div id="fprevtable"></div>
   </div>
- 
+
   <div class="factions">
     <button class="btn pri" id="fsave">Guardar en Firestore</button>
     <button class="btn" id="freset">Limpiar</button>
@@ -415,11 +413,11 @@ tr:hover td{background:#f5f4f1}
     <span class="fsaved" id="fsaved"></span>
   </div>
 </div>
- 
+
 </div><!-- /main -->
 </div><!-- /body -->
 </div><!-- /app -->
- 
+
 <script>
 // ════════════════════════════════════════════════════════════════
 // ██████████████████████████████████████████████████████████████
@@ -435,37 +433,38 @@ tr:hover td{background:#f5f4f1}
 //
 // ██████████████████████████████████████████████████████████████
 const FB_CONFIG = {
-  apiKey:            "REEMPLAZA_CON_TU_API_KEY",
-  authDomain:        "REEMPLAZA.firebaseapp.com",
-  projectId:         "REEMPLAZA_CON_TU_PROJECT_ID",
-  storageBucket:     "REEMPLAZA.appspot.com",
-  messagingSenderId: "REEMPLAZA_CON_TU_SENDER_ID",
-  appId:             "REEMPLAZA_CON_TU_APP_ID"
+  apiKey:            "AIzaSyCcKMyZNvg7ZMIY5zyt62hapCpBGAsnt0Q",
+  authDomain:        "actyus-fintech.firebaseapp.com",
+  projectId:         "actyus-fintech",
+  storageBucket:     "actyus-fintech.firebasestorage.app",
+  messagingSenderId: "49444312783",
+  appId:             "1:49444312783:web:91d4bbdd6160178fa589ba",
+  measurementId:     "G-B66VB4WS6D"
 };
 // ════════════════════════════════════════════════════════════════
- 
+
 const TXN_COL = 'trident_transactions'; // nombre de la colección en Firestore
- 
+
 // ── Inicializar Firebase ──
 let db = null;
 let firestoreOk = false;
- 
+
 try {
   firebase.initializeApp(FB_CONFIG);
   db = firebase.firestore();
 } catch(e) {
   console.warn('Firebase init error:', e);
 }
- 
+
 // ── Cache de transacciones en memoria ──
 let cachedTxns = null; // null = aún no cargado
- 
+
 // ────────────────────────────────────────────────────────────────
 // CONVERTERS — entre array interno y documento Firestore
 // ────────────────────────────────────────────────────────────────
 // Array: [co, serial, type, lcAmt, eurAmt, shares, ppsLc, fdShares, fx, cur, postmoney_lc, proceeds_eur, notes]
 //         0    1       2     3      4       5       6      7         8   9    10             11            12
- 
+
 function txnToDoc(t) {
   return {
     company:     t[0]  ?? '',
@@ -485,7 +484,7 @@ function txnToDoc(t) {
     isBase:      false,
   };
 }
- 
+
 function docToTxn(doc) {
   const d = doc.data();
   return [
@@ -497,14 +496,14 @@ function docToTxn(doc) {
     d.notes ?? ''
   ];
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // FIRESTORE — Carga inicial
 // ────────────────────────────────────────────────────────────────
 async function loadFromFirestore() {
   setConn('wait', 'Conectando…');
-  setOverlay(true, 'Cargando transacciones desde Firestore…');
- 
+  setOverlay(true, 'Conectando con Firestore…');
+
   // Detectar si el config está sin rellenar
   if (FB_CONFIG.apiKey.startsWith('REEMPLAZA')) {
     console.warn('⚠ FB_CONFIG no configurado — usando datos locales');
@@ -514,16 +513,27 @@ async function loadFromFirestore() {
     refresh();
     return;
   }
- 
+
+  if (!db) {
+    console.error('Firebase SDK no inicializado');
+    setConn('err', 'SDK no cargado');
+    showGlobalError('⚠ Firebase SDK no se pudo inicializar. Revisa que los scripts cargaron correctamente.');
+    cachedTxns = [...BASE_TXN];
+    setOverlay(false);
+    refresh();
+    return;
+  }
+
   try {
+    setOverlay(true, 'Leyendo colección trident_transactions…');
     const snap = await db.collection(TXN_COL).orderBy('serial').get();
     firestoreOk = true;
- 
+
     if (snap.empty) {
       // Primera vez: Firestore vacío → mostrar banner de seed
       cachedTxns = [...BASE_TXN];
       document.getElementById('seed-banner').classList.add('show');
-      setConn('ok', 'Conectado — vacío');
+      setConn('ok', `Conectado · vacío (${BASE_TXN.length} en BASE_TXN listos para importar)`);
     } else {
       cachedTxns = snap.docs.map(docToTxn);
       setConn('ok', `Conectado · ${cachedTxns.length} tx`);
@@ -532,27 +542,57 @@ async function loadFromFirestore() {
     console.error('Firestore load error:', e);
     firestoreOk = false;
     setConn('err', 'Sin conexión');
+
+    // Diagnóstico explícito según el tipo de error
+    let diagMsg = '';
+    const code = (e.code||'').toLowerCase();
+    const msg  = (e.message||'').toLowerCase();
+    if (code.includes('permission-denied') || msg.includes('permission')) {
+      diagMsg = '🚫 PERMISO DENEGADO. Las reglas de Firestore están bloqueando la lectura. '
+              + 'Ve a Firebase Console → Firestore Database → Reglas y pega:\n\n'
+              + 'rules_version = "2";\n'
+              + 'service cloud.firestore {\n'
+              + '  match /databases/{database}/documents {\n'
+              + '    match /{document=**} { allow read, write: if true; }\n'
+              + '  }\n'
+              + '}\n\n'
+              + '(Esto es para desarrollo — añade autenticación en producción)';
+    } else if (code.includes('unavailable') || msg.includes('unavailable')) {
+      diagMsg = '🌐 Servicio Firestore no disponible. ¿Tienes Firestore Database creada en Firebase Console? Ve a "Firestore Database" → "Crear base de datos" (modo producción o test, da igual — luego cambias las reglas).';
+    } else if (code.includes('not-found') || msg.includes('not-found') || msg.includes('does not exist')) {
+      diagMsg = '📭 La base de datos Firestore no existe aún. Ve a Firebase Console → "Firestore Database" → "Crear base de datos".';
+    } else if (msg.includes('network') || msg.includes('failed to fetch')) {
+      diagMsg = '🌐 Sin conexión a internet o bloqueo de red (¿firewall corporativo?).';
+    } else {
+      diagMsg = `Error: ${e.code||'(sin código)'} — ${e.message}`;
+    }
+    showGlobalError(diagMsg);
     cachedTxns = [...BASE_TXN];
-    showGlobalError('⚠ No se pudo conectar con Firestore. Mostrando datos locales. Revisa la configuración de FB_CONFIG.');
   }
- 
+
   setOverlay(false);
   refresh();
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // FIRESTORE — Seed (importar BASE_TXN la primera vez)
 // ────────────────────────────────────────────────────────────────
 async function seedFirestore() {
-  if (!firestoreOk) { alert('Firestore no está conectado.'); return; }
+  if (!db) { alert('Firebase no está inicializado. Revisa FB_CONFIG.'); return; }
   document.getElementById('seed-banner').classList.remove('show');
-  setOverlay(true, `Importando ${BASE_TXN.length} transacciones base…`);
- 
+  setOverlay(true, `Importando ${BASE_TXN.length} transacciones a Firestore…`);
+
   try {
+    // Verificar primero que podemos escribir (1 documento de test)
+    const testRef = db.collection(TXN_COL).doc('__seed_test__');
+    await testRef.set({test:true, t:Date.now()});
+    await testRef.delete();
+
     // Firestore limita batch a 500 ops
     const chunks = [];
     for (let i = 0; i < BASE_TXN.length; i += 400) chunks.push(BASE_TXN.slice(i, i + 400));
- 
+
+    let done = 0;
     for (const chunk of chunks) {
       const batch = db.batch();
       chunk.forEach(t => {
@@ -562,21 +602,35 @@ async function seedFirestore() {
         batch.set(ref, doc);
       });
       await batch.commit();
+      done += chunk.length;
+      setOverlay(true, `Importadas ${done}/${BASE_TXN.length} transacciones…`);
     }
- 
+
     // Recargar desde Firestore para asegurar consistencia
+    setOverlay(true, 'Verificando carga…');
     const snap = await db.collection(TXN_COL).orderBy('serial').get();
     cachedTxns = snap.docs.map(docToTxn);
+    firestoreOk = true;
     setConn('ok', `Conectado · ${cachedTxns.length} tx`);
+    setOverlay(true, `✓ ${cachedTxns.length} transacciones cargadas en Firestore`);
+    setTimeout(()=>setOverlay(false), 1200);
   } catch (e) {
     console.error('Seed error:', e);
-    alert('Error al importar datos: ' + e.message);
+    let diagMsg = '';
+    const code = (e.code||'').toLowerCase();
+    const msg  = (e.message||'').toLowerCase();
+    if (code.includes('permission-denied') || msg.includes('permission')) {
+      diagMsg = '🚫 No tienes permisos de ESCRITURA en Firestore. Ve a Firebase Console → Firestore → Reglas y permite write: if true;';
+    } else {
+      diagMsg = `Error: ${e.code||''} ${e.message}`;
+    }
+    alert('No se pudo importar los datos:\n\n' + diagMsg);
+    setOverlay(false);
   }
- 
-  setOverlay(false);
+
   refresh();
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // FIRESTORE — Guardar nueva transacción
 // ────────────────────────────────────────────────────────────────
@@ -600,14 +654,14 @@ async function writeToFirestore(txnArray) {
     return { ok: false, error: e.message };
   }
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // getTxns — fuente única de verdad para el motor
 // ────────────────────────────────────────────────────────────────
 function getTxns() {
   return cachedTxns ?? BASE_TXN;
 }
- 
+
 // ────────────────────────────────────────────────────────────────
 // UI helpers
 // ────────────────────────────────────────────────────────────────
@@ -616,42 +670,56 @@ function setOverlay(on, msg) {
   if (msg) document.getElementById('overlay-msg').textContent = msg;
   el.classList.toggle('hidden', !on);
 }
- 
+
 function setConn(state, label) {
   const dot = document.getElementById('conn-dot');
   const lbl = document.getElementById('conn-label');
   dot.className = 'conn-dot ' + state;
   lbl.textContent = label;
 }
- 
+
 function showGlobalError(msg) {
+  // Evitar duplicados
+  const existing = document.getElementById('global-err');
+  if (existing) existing.remove();
   const div = document.createElement('div');
-  div.style.cssText = 'background:var(--Rbg);border:1px solid var(--R);border-radius:var(--r8);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--Rtx)';
+  div.id = 'global-err';
+  div.style.cssText = 'background:var(--Rbg);border:1px solid var(--R);border-radius:var(--r8);padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--Rtx);white-space:pre-wrap;font-family:var(--mono);line-height:1.5';
   div.textContent = msg;
-  document.getElementById('view-portfolio').prepend(div);
+  const portfolio = document.getElementById('view-portfolio');
+  if (portfolio) portfolio.prepend(div);
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // DATA
 // ════════════════════════════════════════════════════════════════
 const MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
              'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
- 
+
 const FX = {
-  '2022-04':1.090,'2022-05':1.052,'2022-06':1.050,'2022-07':1.016,'2022-08':0.994,
-  '2022-09':0.985,'2022-10':0.988,'2022-11':1.010,'2022-12':1.055,
-  '2023-01':1.075,'2023-02':1.072,'2023-03':1.076,'2023-04':1.095,
-  '2023-05':1.085,'2023-06':1.087,'2023-07':1.103,'2023-08':1.094,
-  '2023-09':1.063,'2023-10':1.054,'2023-11':1.087,'2023-12':1.098,
-  '2024-01':1.084,'2024-02':1.082,'2024-03':1.087,'2024-04':1.071,
-  '2024-05':1.080,'2024-06':1.075,'2024-07':1.088,'2024-08':1.103,
-  '2024-09':1.115,'2024-10':1.082,'2024-11':1.056,'2024-12':1.044,
-  '2025-01':1.038,'2025-02':1.040,'2025-03':1.082,'2025-04':1.130,
-  '2025-05':1.127,'2025-06':1.141,'2025-07':1.175,'2025-08':1.120,
-  '2025-09':1.163,'2025-10':1.090,'2025-11':1.058,'2025-12':1.055,
-  '2026-01':1.042,'2026-02':1.055,'2026-03':1.155
+  '2022-01':1.1314,'2022-02':1.1342,'2022-03':1.1019,'2022-04':1.0819,'2022-05':1.0578,'2022-06':1.0566,
+  '2022-07':1.0179,'2022-08':1.0128,'2022-09':0.9904,'2022-10':0.9826,'2022-11':1.0201,'2022-12':1.0589,
+  '2023-01':1.0769,'2023-02':1.0715,'2023-03':1.0706,'2023-04':1.0968,'2023-05':1.0868,'2023-06':1.0840,
+  '2023-07':1.1058,'2023-08':1.0909,'2023-09':1.0684,'2023-10':1.0563,'2023-11':1.0808,'2023-12':1.0903,
+  '2024-01':1.0905,'2024-02':1.0795,'2024-03':1.0872,'2024-04':1.0728,'2024-05':1.0812,'2024-06':1.0759,
+  '2024-07':1.0844,'2024-08':1.1012,'2024-09':1.1106,'2024-10':1.0904,'2024-11':1.0630,'2024-12':1.0479,
+  '2025-01':1.0354,'2025-02':1.0413,'2025-03':1.0807,'2025-04':1.1214,'2025-05':1.1278,'2025-06':1.1519,
+  '2025-07':1.1677,'2025-08':1.1631,'2025-09':1.1732,'2025-10':1.1630,'2025-11':1.1560,'2025-12':1.1695,
+  '2026-01':1.1919,'2026-02':1.1777,'2026-03':1.1553
 };
- 
+
+const FX_BRL = {
+  '2022-01':5.4201,'2022-02':5.3910,'2022-03':5.3808,'2022-04':5.3498,'2022-05':5.3444,'2022-06':5.3321,
+  '2022-07':5.3124,'2022-08':5.2967,'2022-09':5.2758,'2022-10':5.2678,'2022-11':5.2462,'2022-12':5.2230,
+  '2023-01':5.2221,'2023-02':5.2326,'2023-03':5.2504,'2023-04':5.2565,'2023-05':5.2593,'2023-06':5.2692,
+  '2023-07':5.2767,'2023-08':5.2753,'2023-09':5.2940,'2023-10':5.2932,'2023-11':5.3072,'2023-12':5.3140,
+  '2024-01':5.3300,'2024-02':5.3613,'2024-03':5.3831,'2024-04':5.3965,'2024-05':5.4254,'2024-06':5.4505,
+  '2024-07':5.4727,'2024-08':5.5070,'2024-09':5.5242,'2024-10':5.5434,'2024-11':5.5725,'2024-12':5.6007,
+  '2025-01':5.6380,'2025-02':5.6790,'2025-03':5.7079,'2025-04':5.7527,'2025-05':5.7873,'2025-06':5.8278,
+  '2025-07':5.8693,'2025-08':5.9067,'2025-09':5.9442,'2025-10':5.9888,'2025-11':6.0368,'2025-12':6.0742,
+  '2026-01':6.0860,'2026-02':6.0618,'2026-03':6.0427,'2026-04':6.0163
+};
+
 const META = {
   'MyInvestor':['España','Inversión','EUR'],'Creditas':['Brasil','Crédito','USD'],
   'Urbanitae':['España','Proptech','EUR'],'Boom':['EE.UU','Infraestructura','USD'],
@@ -675,122 +743,156 @@ const META = {
   'Findango':['España','Crédito','EUR'],'CloudWalk':['Brasil','Pagos','USD'],
   'Omie':['Brasil','Finanzas Emb.','USD'],'Zig':['Brasil','Pagos','USD'],
   'Leasy':['Perú','Crédito','USD'],'Bliss Saude':['Brasil','Insurtech','USD'],
-  'Hero Seguros':['Brasil','Insurtech','USD'],
+  'Hero Seguros':['Brasil','Insurtech','BRL'],
   'Dila IV':['México','Fondo','USD'],'Quona III':['Global','Fondo','USD'],'Fontes II':['Brasil','Fondo','USD'],
 };
- 
+
 const BASE_TXN = [
- ['MyInvestor',44700,'eq',3000000,3000000,376152,7.9755,12538321,1,'EUR',100000000,0,'Nota convertible inicial'],
- ['MyInvestor',44994,'cn',0,0,371003,5.4245,35026072,1,'EUR',190000000,0,'2ª nota. Ampliación sin desembolso'],
- ['MyInvestor',45657,'val',0,0,0,7.000,35026072,1,'EUR',248239000,0,'Val. EY jun-25 PPS 7€'],
- ['MyInvestor',45957,'eq',639942,639942,86210,7.423,39067541,1,'EUR',290000000,0,'Ampliación €30M oct-25'],
- ['Creditas',44701,'eq',3000207,2864433,9525,314.98,14140095,1.0474,'USD',4800000000,0,'Equity inicial'],
- ['Creditas',45058,'cn',0,0,-9525,null,15643222,1.093,'USD',null,0,'Apertura nota (ajuste provisional)'],
- ['Creditas',45838,'val',0,0,0,5235952,null,1.1787,'USD',null,0,'Valor nota Q2-25 — total USD en campo PPS'],
- ['Creditas',45930,'val',0,0,0,5423690,null,1.1734,'USD',null,0,'Valor nota Q3-25 — total USD en campo PPS'],
- ['Creditas',45989,'cc',0,0,27327,202.998,15447430,1.1566,'USD',3135803574,0,'Cierre SAFE → Series G-2'],
- ['Urbanitae',44719,'eq',1003880,1003880,7698,130.41,166087,1,'EUR',20000000,0,''],
- ['Urbanitae',44926,'val',0,0,0,229.42,null,1,'EUR',38103680,0,'Val. auditada'],
- ['Urbanitae',45291,'val',0,0,0,599.5,null,1,'EUR',null,0,''],
- ['Urbanitae',45657,'val',0,0,0,599.5,null,1,'EUR',97546000,0,'Traspaso master EY'],
- ['Boom',44701,'eq',399995,381893,44397,9.009,2053396,1.0474,'USD',18500000,0,''],
- ['Boom',45291,'val',0,0,0,12.0,null,1.039,'USD',11202000,0,'Val. auditada dic-23'],
- ['Mundi Trade',44701,'eq',449994,429629,56060,8.027,14521917,1.0474,'USD',115000000,0,''],
- ['Mundi Trade',44805,'cn',200000,204318,24407,10.84,15132082,0.979,'USD',124000000,0,''],
- ['Mundi Trade',45079,'cc',0,0,43148,4.247,22922784,1.076,'USD',95000000,0,'Conversión nota'],
- ['Gringo',44701,'eq',499581,476972,1039,480.83,250244,1.0474,'USD',124000000,0,''],
- ['Gringo',45155,'eq',499497,465605,897,556.85,332217,1.073,'USD',185000000,0,''],
- ['Gringo',45386,'eq',999546,923182,1795,556.85,331597,1.083,'USD',185000000,0,''],
- ['Gringo',45789,'sale',0,0,-3731,null,null,1.057,'USD',null,1998621,'Venta total 12-may-25'],
- ['Zippi',44727,'eq',249995,239204,41319,6.050,12561220,1.045,'USD',75000000,0,''],
- ['Lemon Energia',44722,'eq',362999,344238,198602,1.828,16310609,1.055,'USD',30000000,0,''],
- ['Lemon Energia',45532,'eq',129653,116594,65793,1.971,22038798,1.112,'USD',43000000,0,''],
- ['Kanastra',44729,'eq',384999,366972,112166,3.432,7635891,1.049,'USD',26250000,0,''],
- ['Kanastra',44923,'eq',250000,238101,46846,5.337,8713354,1.050,'USD',46500000,0,''],
- ['Kanastra',45390,'eq',298768,275820,56645,5.274,11855341,1.083,'USD',62500000,0,''],
- ['Kanastra',45653,'eq',89132,85589,16899,7.384,17337878,1.041,'USD',98533997,0,''],
- ['KillB',44743,'cn',100000,98726,1,100000,null,1.013,'USD',15000000,0,'1 unit share a $100k'],
- ['Reworth',44747,'cn',500000,480908,0,null,null,1.040,'USD',35000000,0,'Nota sin PPS'],
- ['Reworth',45991,'wo',0,0,0,0,null,1.159,'USD',null,200,'Write-off nov-25'],
- ['Boopos',44777,'eq',1500000,1500000,780965,1.921,19362876,1.010,'USD',36990000,0,''],
- ['Boopos',45212,'eq',250000,250000,130161,1.921,20625438,1.061,'USD',null,0,''],
- ['Boopos',45387,'cn',100000,100000,0,null,null,1.084,'USD',null,0,'Nota €100k'],
- ['Boopos',45657,'val',0,0,0,0.195,null,1.035,'USD',null,0,'Valor pre write-off'],
- ['Boopos',45747,'wo',0,0,0,0,null,1.081,'USD',null,0,'Write-off mar-25'],
- ['Ukio',44798,'eq',494909,486952,169565,2.919,26981384,0.984,'USD',78750000,0,''],
- ['Ukio',45635,'eq',1580550,1499522,394152,3.800,32873611,1.054,'USD',null,0,''],
- ['Ukio',45657,'val',0,0,0,4.010,null,1.035,'USD',132000000,0,''],
- ['Frekuent',44947,'eq',396224,396224,4071,97.33,126823,1,'EUR',12343683,0,''],
- ['Frekuent',44947,'eq',103776,103776,1300,79.83,126823,1,'EUR',10124280,0,''],
- ['Frekuent',45420,'eq',14523,14523,1080,13.44,126823,1,'EUR',1704501,0,'Follow-on'],
- ['Frekuent',45471,'cn',130000,130000,0,null,null,1,'EUR',null,0,'Nota €130k'],
- ['Frekuent',45485,'eq',51768,51768,652,null,null,1,'EUR',null,0,'Sin PPS'],
- ['Frekuent',45637,'cn',41702,41702,0,null,null,1,'EUR',null,0,'2ª nota'],
- ['Frekuent',45657,'val',0,0,0,231.84,null,1,'EUR',36500000,0,'PPS blended commons -40%'],
- ['Frekuent',45854,'cc',22947,22947,1555,133.41,153140,1,'EUR',20149393,0,'Conversión notas + secundario'],
- ['Frekuent',45868,'val',0,0,0,239.99,153140,1,'EUR',36500000,0,'Corrección PPS vigente'],
- ['Fence',45037,'cn',100000,100000,115566,null,null,1.080,'USD',10000000,0,''],
- ['Fence',45621,'eq',49999,47619,31818,1.571,15368728,1.050,'USD',24150000,0,''],
- ['Latitud',45041,'cn',48075,43697,0,null,null,1.100,'USD',60000000,0,'Nota'],
- ['Latitud',45041,'val',0,0,23586,2.038,null,1.100,'USD',null,0,'Val. misma fecha — 23586 shares a $2.04'],
- ['Arke',45099,'cn',500000,500000,1,500000,null,1.090,'USD',7500000,0,'1 unit share $500k'],
- ['Arke',45657,'val',0,0,0,500000,null,1.035,'USD',null,0,'Valor de la nota — revisión pendiente'],
- ['Arke',45895,'cn',150000,150000,0,null,null,1.167,'USD',10000000,0,'SAFE $150k @$10M cap'],
- ['ASN',45105,'cn',250009,250009,14211,17.593,354697,1,'EUR',5700000,0,''],
- ['ASN',45657,'val',0,0,0,17.593,null,1,'EUR',8000000,0,'PPS sin cambio'],
- ['ASN',45789,'follow',40000,40000,2274,17.593,null,1,'EUR',null,0,'Nota €40k como equity'],
- ['PactFi',45090,'eq',250000,235334,165180,1.514,17300000,1.062,'USD',25000000,0,''],
- ['PactFi',45657,'val',0,0,0,2.954,null,1.035,'USD',48798620,0,''],
- ['Principia',45218,'eq',749998,711661,262678,2.855,24563859,1.054,'USD',70134730,0,''],
- ['Principia',45608,'eq',499999,471561,175119,2.855,28310189,1.061,'USD',80831252,0,''],
- ['Vixtra',45280,'eq',750000,687072,466012,1.609,17397635,1.092,'USD',28150000,0,''],
- ['Vixtra',45735,'eq',99999,91560,49706,2.012,18540176,1.092,'USD',37300000,0,''],
- ['Deale',45288,'eq',375000,375000,43353,8.65,866834,1,'EUR',7498114,0,''],
- ['Deale',45657,'val',0,0,0,11.281,null,1,'EUR',9779097,0,'Val. dic-24 Excel Aitor'],
- ['Depasify',45280,'eq',234985,234985,13888,16.92,451911,1,'EUR',7646334,0,''],
- ['Depasify',45657,'val',0,0,0,18.10,null,1,'EUR',8211000,0,''],
- ['Simetrik',45345,'eq',999995,924261,169213,5.910,36380978,1.082,'USD',214999974,0,''],
- ['Simetrik',45657,'val',0,0,0,8.589,null,1.035,'USD',347623367,0,''],
- ['Akad Seguros',45407,'eq',749998,701490,302956,2.476,54076768,1.069,'USD',142500000,0,''],
- ['Akad Seguros',45565,'eq',749998,671208,302956,2.476,58621118,1.118,'USD',145122440,0,''],
- ['GPT Advisor',45393,'cn',300000,300000,0,null,null,1,'EUR',null,0,'Nota. Cap social €3k'],
- ['GPT Advisor',45657,'val',0,0,120,2500,null,1,'EUR',null,0,'120 shares @€2500'],
- ['Moove',45433,'cn',605453,557465,0,null,null,1.086,'USD',null,0,'Nota sin PPS'],
- ['Moove',45657,'val',0,0,405,2985.18,96745,1.035,'USD',null,0,'405 shares @$2985'],
- ['CXC',45520,'eq',999999,865599,190476,5.25,11535505,1.098,'USD',52499995,0,''],
- ['Beep Saude',45533,'eq',999994,865595,10382,96.32,2203121,1.112,'USD',212204615,0,''],
- ['Konfio',45526,'cn',999999,898168,133461,7.493,98932091,1.113,'USD',741280350,0,'Nota conv. activa'],
- ['Vivla',45567,'cn',500000,500000,0,null,null,1,'EUR',21550000,0,'Nota con liq. preference'],
- ['Vivla',45657,'val',0,0,255284,1.959,12475087,1,'EUR',null,0,'255284 shares @€1.96'],
- ['Vivla',45853,'eq',250000,250000,76410,3.272,12475622,1,'EUR',40000000,0,'Ronda Samaipata €8M'],
- ['Capim',45656,'eq',749998,649198,231817,3.235,24305560,1.041,'USD',78635778,0,''],
- ['Crabi',45699,'eq',499999,432800,2126392,0.235,161498833,1.036,'USD',37975000,0,''],
- ['Gopass',45747,'eq',500000,432800,227884,2.194,18458719,1.087,'USD',40500288,0,''],
- ['Gopass',45747,'eq',500000,432800,219747,2.275,20436439,1.087,'USD',46500000,0,'2 tramos'],
- ['Spotahome',45747,'eq',1130000,1130000,31347962,0.032,319044740,1,'EUR',10179412,0,''],
- ['Job & Talent',45807,'eq',999993,999993,82077,12.184,93496565,1,'EUR',1139124749,0,'Serie F. Pref. stack subordinado'],
- ['Iniciador',45840,'eq',249999,213086,246524,1.014,25639156,1.173,'USD',26000000,0,'Seeds-2. Fecha 02/07/25'],
- ['L40',45809,'eq',891,780,17816,0.050,920943,1.142,'USD',46047,0,'Heredado de Boopos a nominal'],
- ['Findango',45869,'eq',1009148,1009148,179479,5.623,3233858,1,'EUR',18000000,0,'Buyout con AndBank & MyInvestor'],
- ['CloudWalk',45926,'eq',1500000,1283258,23964,62.594,47927644,1.169,'USD',3000000000,0,'Secundario $96M @$3B'],
- ['Omie',45978,'eq',1500000,1292557,1184797,1.266,544406300,1.160,'USD',694374300,0,'BRL exposure'],
- ['Zig',45988,'cn',795544,686465,1,795544,null,1.159,'USD',125600000,0,'SAFE fijo 1 acción=$10,828'],
- ['Leasy',46008,'eq',500000,432795,null,null,null,1.155,'USD',60038736,0,'Datos incompletos'],
- ['Bliss Saude',46084,'eq',750000,486900,null,null,null,1.112,'USD',40000000,0,''],
- ['Hero Seguros',46079,'eq',993127,859652,null,null,null,1.142,'USD',36500000,0,''],
- ['Dila IV',44682,'fund',739768,736651,null,null,null,1.047,'USD',null,0,'Inv. inicial'],
- ['Dila IV',45747,'fund',0,0,null,630801,null,1.082,'USD',null,0,'NAV update'],
- ['Dila IV',45838,'fund',0,0,null,574787,null,1.179,'USD',null,0,'NAV 30-jun sin distribuciones'],
- ['Dila IV',45838,'dist',0,0,null,null,null,1.179,'USD',null,70724,'Distribución $83,362'],
- ['Dila IV',45960,'fund',5018,4345,null,650529,null,1.155,'USD',null,0,'Capital call $5k'],
- ['Quona III',44682,'fund',638757,666299,null,null,null,1.034,'USD',null,0,'Inv. inicial'],
- ['Quona III',45793,'fund',16472,14229,null,584049,null,1.157,'USD',null,0,'Capital call'],
- ['Quona III',45866,'fund',40119,34466,null,624168,null,1.164,'USD',null,0,'Capital call'],
- ['Quona III',45929,'fund',8636,7427,null,632805,null,1.163,'USD',null,0,'Capital call'],
- ['Fontes II',44944,'fund',187500,173741,null,null,null,1.020,'USD',null,0,''],
- ['Fontes II',45747,'fund',0,0,null,254604,null,1.082,'USD',null,0,'NAV update'],
+ ['Dila IV',44682,'eq',739767.94,706644.34,null,null,null,1.0469,'USD',null,0,''],
+ ['Quona III',44682,'eq',638757.22,617731.97,null,null,null,1.034,'USD',null,0,'Conciliando con Q2 2025'],
+ ['MyInvestor',44700,'cn',3000000,3000000,376152,7.975499,12538321,1,'EUR',100000000,0,''],
+ ['Boom',44701,'eq',399995,381893.26,44397,9.0095,2053396,1.0474,'USD',18500000,0,''],
+ ['Creditas',44701,'eq',3000207.36,2864433.23,9525,314.98,14140095,1.0474,'USD',4800000000,0,''],
+ ['Gringo',44701,'eq',499580.71,476972.23,1039,480.8284,250244,1.0474,'USD',124000000,0,''],
+ ['Mundi Trade',44701,'eq',449993.62,429629.2,56060,8.027,14521917,1.0474,'USD',115000000,0,''],
+ ['Urbanitae',44719,'eq',1003879.81,1003879.81,7698,130.407847,166087,1,'EUR',20000000,0,''],
+ ['Lemon Energia',44722,'eq',362998.74,344237.78,198602,1.82777,16310609,1.0545,'USD',30000000,0,''],
+ ['Zippi',44727,'eq',249994.83,239204.0,41319,6.05036,12561220,1.0451,'USD',75000000,0,''],
+ ['Kanastra',44729,'eq',384998.58,366972.33,112166,3.4324,7635891,1.0491,'USD',26250000,0,''],
+ ['KillB',44743,'cn',100000,98726.0,1,100000,null,1.0129,'USD',15000000,0,'Asumpciones para el caclulo, no tenemos fd shares, no cap no floor no interest.'],
+ ['Reworth',44747,'cn',500000,480907.95,null,null,null,1.0397,'USD',35000000,0,''],
+ ['Boopos',44777,'eq',1500000,1484665.12,780965,1.9207,19362876,1.0103,'USD',36989997.73,0,''],
+ ['Ukio',44798,'eq',494909.37,502956.68,169565,2.9187,26981384,0.984,'USD',78750000,0,''],
+ ['Mundi Trade',44805,'cn',200000,204318.4,24406.583193,10.84,15132081.579832,0.9789,'USD',124000000,0,''],
+ ['Kanastra',44923,'eq',250000,238100.75,46846,5.3366,8713354,1.05,'USD',46500000,0,''],
+ ['Urbanitae',44926,'val',0,0,null,229.42,null,1,'EUR',38103679.54,0,'Traspaso Master 24/06. pps x fd confimadas.'],
+ ['Fontes II',44944,'eq',187500,183823.53,null,null,null,1.02,'USD',null,0,''],
+ ['Frekuent',44947,'eq',396224,396224,4071,97.328504,126823,1,'EUR',12343682.59,0,''],
+ ['Frekuent',44947,'eq',103776,103776,1300,79.827431,126823,1,'EUR',10124280.09,0,''],
+ ['MyInvestor',44994,'cn',0,0,371003,5.424531,35026072,1,'EUR',190000000,0,''],
+ ['Fence',45037,'cn',100000,92601.0,115566,null,null,1.0799,'USD',10000000,0,''],
+ ['Latitud',45041,'cn',48075.47,43697.03,null,null,null,1.1002,'USD',60000000,0,''],
+ ['Latitud',45041,'val',0,0,23586,2.0383,null,1.1022,'USD',null,0,''],
+ ['Creditas',45058,'cn',0,0,-9525,null,15643222,1.093,'USD',null,0,'Ajuste provisional de la posicion de Creditas, fechas y movimentos son estimados'],
+ ['Mundi Trade',45079,'cc',0,0,43148,4.24676,22922784,1.0761,'USD',95000000,0,''],
+ ['PactFi',45090,'eq',250000,235333.69,165180,1.5135,17300000,1.0623,'USD',25000000,0,''],
+ ['Arke',45099,'cn',500000,458551.53,null,null,null,1.0904,'USD',7500000,0,''],
+ ['ASN',45105,'cn',250008.8,250008.8,14211,17.592625,354697,1,'EUR',5700000,0,''],
+ ['Gringo',45155,'eq',499497.03,465605.17,897,556.85288,332217,1.0728,'USD',185000000,0,''],
+ ['Boopos',45212,'eq',250000.23,235722.52,130161,1.9207,20625438,1.0606,'USD',null,0,''],
+ ['Principia',45218,'eq',749998.23,711661.0,262678,2.8552,24563859,1.0539,'USD',70134730.2168,0,''],
+ ['Depasify',45280,'eq',234984.96,234984.96,13888,16.92,451911,1,'EUR',7646334.12,0,''],
+ ['Vixtra',45280,'eq',750000,687071.58,466012,1.6094,17397635,1.0916,'USD',28150000,0,''],
+ ['Deale',45288,'eq',375000,375000,43353,8.65,866834,1,'EUR',7498114.1,0,''],
+ ['Boom',45291,'val',0,0,null,12,null,1.1039,'USD',11202000,0,''],
+ ['Reworth',45291,'val',0,0,null,null,null,1,'EUR',null,0,''],
+ ['Urbanitae',45291,'val',0,0,null,599.5,null,1,'EUR',null,0,''],
+ ['Simetrik',45345,'eq',999994.86,924260.99,169213,5.909681,36380978,1.0819,'USD',214999974,0,''],
+ ['Gringo',45386,'eq',999545.75,923181.81,1794.990716,556.85288,331597,1.0827,'USD',185000000,0,''],
+ ['Boopos',45387,'cn',100000,92276.19,null,null,null,1.0837,'USD',null,0,''],
+ ['Kanastra',45390,'eq',298768.39,275820.0,56645,5.2744,11855341,1.0832,'USD',62500000,0,''],
+ ['GPT Advisor',45393,'cn',300000,300000,1,null,null,1,'EUR',null,0,''],
+ ['Akad Seguros',45407,'eq',749997.88,701818.07,302956,2.4756,54076768,1.0686,'USD',142500000,0,''],
+ ['Frekuent',45420,'eq',14523.01,14523.01,1080,13.442602,126823,1,'EUR',1704501.12,0,''],
+ ['Moove',45433,'cn',605453.02,557465.4,null,null,null,1.0861,'USD',null,0,''],
+ ['Frekuent',45471,'cn',130000,130000,null,null,null,1,'EUR',null,0,''],
+ ['Frekuent',45485,'eq',51768,51768,652,null,null,1,'EUR',null,0,''],
+ ['CXC',45520,'eq',999999,910704.43,190476,5.25,11535505,1.0981,'USD',52499995,0,''],
+ ['Konfio',45526,'cn',999999.26,898168.18,133461,7.49282,98932091,1.1134,'USD',741280350.08662,0,''],
+ ['Lemon Energia',45532,'eq',129653.01,116594.43,65793,1.97062,22038798,1.112,'USD',43000000,0,''],
+ ['Beep Saude',45533,'eq',999994.24,899141.99,10382,96.32,2203121,1.1122,'USD',212204614.72,0,''],
+ ['Akad Seguros',45565,'eq',749997.88,671078.99,302956,2.4756,58621118,1.1176,'USD',145122439.7208,0,''],
+ ['Vivla',45567,'cn',500000,500000,null,1.6094,null,1,'EUR',21550000,0,''],
+ ['Principia',45608,'eq',500000,471278.85,175119,2.8552,28310189,1.0609,'USD',80831251.6328,0,''],
+ ['Fence',45621,'eq',49998.81,47638.87,31818,1.5714,15368728,1.0495,'USD',24150000,0,''],
+ ['Ukio',45635,'eq',1580550,1500000.0,394152,3.8,32873611,1.0537,'USD',null,0,''],
+ ['Frekuent',45637,'cn',41701.66,41701.66,null,null,null,1,'EUR',null,0,''],
+ ['Kanastra',45653,'eq',89132,85589.13,16899,7.3842,17337878,1.0414,'USD',98533996.8432,0,''],
+ ['Capim',45656,'eq',749997.54,720752.29,231817,3.2353,24305560,1.0406,'USD',78635778.268,0,''],
+ ['Arke',45657,'val',0,0,1,500000,null,1,'EUR',null,0,''],
+ ['Boopos',45657,'val',0,0,null,0.19536,null,1.0353,'USD',0,0,''],
+ ['Deale',45657,'val',0,0,null,11.281395,null,1,'EUR',9779096.812226,0,'Nueva valoracion dic 24, Excel Aitor, PPS 11,28 new post val 9779.097'],
+ ['Depasify',45657,'val',0,0,null,18.13,null,1,'EUR',8211000,0,''],
+ ['Frekuent',45657,'val',0,0,null,231.842233,null,1,'EUR',36500000,0,'PPS Blended Common shares tienen un 40% de descuento sobre 239'],
+ ['GPT Advisor',45657,'val',0,0,null,300000,null,1,'EUR',7500000,0,'Se estima pps en fd diluted basis, con 3000 cap social a 1€ y solo la nota exist'],
+ ['Kanastra',45657,'val',0,0,null,8.7268,null,1.0353,'USD',151304194,0,''],
+ ['Moove',45657,'val',0,0,405,2985.176243,96744.704791,1.0353,'USD',null,0,''],
+ ['MyInvestor',45657,'val',0,0,null,7,null,1,'EUR',248239000,0,'Traspaso Master 23/06. Basandose en el informe EY valoracion. Siguiendo el N de '],
+ ['PactFi',45657,'val',0,0,null,2.954327,null,1.0353,'USD',48798620.011049,0,''],
+ ['Reworth',45657,'val',0,0,0.011912,7500000,null,1.0353,'USD',null,0,'Estimacion de nuestra posicion en base de la nota convertible'],
+ ['Simetrik',45657,'val',0,0,null,8.589154,null,1.0353,'USD',347623367,0,''],
+ ['Ukio',45657,'val',0,0,null,4.01,null,1.0353,'USD',132000000,0,''],
+ ['Urbanitae',45657,'val',0,0,null,599.5,null,1,'EUR',97546000,0,'24/06 Traspaso portfolio. Cojo PPS de Informe ey x FD shares confirmadas'],
+ ['Vivla',45657,'val',0,0,255284,1.9586,12475087,1,'EUR',null,0,''],
+ ['Zippi',45657,'val',0,0,null,8.413282,null,1.0353,'USD',105681091.337309,0,''],
+ ['Quona III',45670,'fund',20889.21,17941.43,null,653693.81,null,1.1643,'USD',null,0,'Quona Accion Inclusion - valued at $653,693.81 - Q4 valuation $632,804.60 + CC $'],
+ ['Dila IV',45680,'fund',21655,18308.25,null,632472.9,null,1.1828,'USD',null,0,'Dila - valued at $632,472.90 - Q3 Statement + additional CC (565,117.90+21,655+4'],
+ ['Crabi',45699,'eq',499999.82,482634.16,2126392,0.23514,161498833,1.036,'USD',37975000,0,''],
+ ['Moove',45702,'val',0,0,null,null,null,1.175,'USD',2000000000,0,''],
+ ['Vixtra',45735,'eq',99998.54,91582.98,49706,2.0118,18540176,1.0919,'USD',37300000,0,''],
+ ['Boopos',45747,'wo',0,0,-911126,null,null,1.0815,'USD',null,0,'Write-off Boopos, registrado 31/03 despues de la auditoria.'],
+ ['Dila IV',45747,'fund',0,0,1,630801,null,1.0816,'USD',null,0,''],
+ ['Fontes II',45747,'fund',0,0,1,254604,null,1.0816,'USD',null,0,''],
+ ['Frekuent',45747,'val',0,0,null,239.9,null,1,'EUR',null,0,'pps'],
+ ['Gopass',45747,'eq',500000,459639.09,227883.8,2.194101,18458719,1.0878,'USD',40500287.866009,0,''],
+ ['Gopass',45747,'eq',500000,459639.09,219746.654762,2.275347,20436438.892857,1.0878,'USD',46500000.0,0,''],
+ ['Quona III',45747,'fund',0,0,1,560569,null,1.0816,'USD',null,0,''],
+ ['Spotahome',45747,'eq',1000000,1000000,31347962,0.0319,319044740,1,'EUR',10179412,0,''],
+ ['ASN',45789,'follow',40000,40000,2273.679966,17.592625,null,1,'EUR',null,0,'Nota Convertible de 40k, (como equity), NO convertida, es solo apunte'],
+ ['Gringo',45789,'sale',0,0,-3731,null,null,1.0575,'USD',null,1998620.91,'Venta Gringo 12/05, ya distribuido EUR'],
+ ['Quona III',45793,'fund',16471.69,14231.63,null,584049,null,1.1574,'USD',null,0,'CC  USD 16,471.69 @usd/eur 1,1574'],
+ ['Job & Talent',45807,'eq',999993.34,999993.34,82077,12.1836,93496565,1,'EUR',1139124749.334,0,'Series F Investment Actyus. PPS 12,1836 (Preferred stack, captable 20250630) Pre'],
+ ['L40',45809,'eq',890.8,780.1,17816,0.05,920943,1.1419,'USD',46047.15,0,'Heredamos acciones de Boopos en L40 ( a nominal)'],
+ ['ASN',45838,'follow',0,0,23.475746,17.592625,null,1,'EUR',null,0,'Interes de la nota, en acciones'],
+ ['Creditas',45838,'val',0,0,1,5235952.670923,null,1.1787,'USD',null,0,'Actualizacion de valor posicion nota a Q2 25'],
+ ['Dila IV',45838,'val',0,0,null,574787,null,1.1787,'USD',null,0,'Psicion sin distribuciones de nav 30.06'],
+ ['Dila IV',45838,'dist',0,0,null,645510.975566,null,1.1787,'USD',null,70723.98,'Ajuste de distribuciones hasta la fecha: 83.362,35 USD, ajuste a euros aprox'],
+ ['Iniciador',45838,'eq',249999,213086.28,246524,1.0141,25639156,1.1732,'USD',26000000,0,'Series Seed-2 Shares. Liquidation prefernce x1 - Fecha Valor 02/07/2025'],
+ ['Vivla',45853,'eq',250000,250000,76410,3.2718,12475622,1,'EUR',40000000,0,'Ronda Liderada por Samaipata €8M @ €40M postmoney'],
+ ['Frekuent',45854,'cc',0,0,1383,133.412948,153140.265585,1,'EUR',20149392.9033,0,'Compra Acciones Secundario'],
+ ['Frekuent',45854,'eq',22947,22947,172,133.412948,153140.265585,1,'EUR',20149392.9033,0,'Conversion de Nota los dos tramos'],
+ ['Quona III',45866,'fund',40119.37,34466.01,null,624168.37,null,1.164,'USD',null,0,'CC $40k @1'],
+ ['Frekuent',45868,'val',0,0,null,239.99,null,1,'EUR',36500000,0,'Correcón de valoracion secundarios/conversion no marcan nueva valoracion'],
+ ['Findango',45869,'eq',1009148.28,1009148.28,179479,5.622654,3233858,1,'EUR',18000000,0,'BuyOut Findango w/ AndBank & MyInvestor'],
+ ['Arke',45895,'cn',150000,128564.12,null,650000,null,1.1667,'USD',10000000,0,'Safe $150k a $10M Cap'],
+ ['CloudWalk',45926,'eq',1500000,1283257.76,23964,62.5938,47927644,1.1689,'USD',3000000000,0,'Compra de Secundario $96M a $3B'],
+ ['Quona III',45929,'fund',8636.21,7426.44,null,632804.58,null,1.1629,'USD',null,0,'CC $8,6k'],
+ ['ASN',45930,'cn',0,0,71,17.59,null,1,'EUR',8000000,0,'Nota ASN. Esta la llevo sumando acciones x 0€'],
+ ['Creditas',45930,'val',0,0,null,5423690.438748,null,1.1734,'USD',null,0,'Actualización nota convertible Q3 2025'],
+ ['MyInvestor',45957,'eq',639941.7,639941.7,86210,7.423056,39067541,1,'EUR',290000000,0,'Apliacion de €30M entre inversores internos'],
+ ['Dila IV',45960,'fund',5017.9,4344.5,null,650528.875566,null,1.155,'USD',null,0,'capital call de 5k usd se suma a nav y actualziacion de tipo de cambio,'],
+ ['Omie',45978,'eq',1500000,1292557.45,1184797,1.26604,544406300,1.1605,'USD',694374300.335873,0,'Posición con exposición a BRL, a 17/11   BRL/USD 5.3294 , USD/EUR 1,660'],
+ ['Zig',45988,'cn',795543.99,686464.74,1,795543.99,null,1.1589,'USD',125600000,0,'Conversion fija a  1 acción = 10,828 USD.'],
+ ['Creditas',45989,'cc',0,0,27327,202.9984,15447430,1.1566,'USD',3135803574.112,0,'se cuenta con share (1) de la apertura de la nota Series G‑2 Preference Shares c'],
+ ['Reworth',45991,'wo',0,0,0,0,null,1.1592,'USD',null,0,'Write off,€200eurs back'],
+ ['Leasy',46008,'eq',500000,426794.76,1661,301.02348,199449,1.1715,'USD',60038736,0,'Leasy'],
+ ['Mundi Trade',46013,'val',0,0,null,4.2618,null,1.1745,'USD',null,0,'TERM SHEET FOR SERIES A-2 PREFERRED  confirmar fd shares'],
+ ['MyInvestor',46016,'val',0,0,null,7.6117,null,1,'EUR',297370401.8297,0,'Hacemo set de la valoración con precio ponderado, €297M post money PPS: 66% Prim'],
+ ['Boom',46022,'val',0,0,null,33.799,null,1.175,'USD',97000000,0,''],
+ ['CXC',46022,'val',0,0,null,6.83,null,1.1734,'USD',68249993.5,0,'Actualizamos PPS para encajar moic de 1,3x en q4 25'],
+ ['Deale',46022,'val',0,0,null,15.57,null,1,'EUR',13496481.212373,0,''],
+ ['Dila IV',46022,'val',0,0,null,579804,null,1.175,'USD',null,0,'actualizacio fondo'],
+ ['Dila IV',46022,'val',0,0,null,565117.19,null,1.175,'USD',null,0,'nuevo nav'],
+ ['Fence',46022,'val',0,0,null,3.8964,null,1.175,'USD',75000000,0,'pps, falta actualizar fd'],
+ ['GPT Advisor',46022,'cc',0,0,920,326.086957,23004,1,'EUR',7500000,0,'conversion gpt pps de 300k entre 902 accuines'],
+ ['Gopass',46022,'val',0,0,null,3.502,null,1.175,'USD',74000000,0,''],
+ ['Lemon Energia',46022,'val',0,0,null,1.68,null,1.1734,'USD',36592735.017339,0,'bajamos pps para encajar estimacion de 1,06 a 0,9 moic'],
+ ['MyInvestor',46022,'val',0,0,null,7.972,null,1.175,'USD',312000000,0,''],
+ ['PactFi',46022,'val',0,0,null,9.8235,16517676,1.175,'USD',200000000,0,'25 million round 175mm pre money valuation, 200mm post money valuation lead inve'],
+ ['Urbanitae',46022,'val',0,0,null,1140.01,null,1,'EUR',175000000,0,''],
+ ['Zippi',46022,'val',0,0,null,12.1,null,1.1734,'USD',151999809.215741,0,'actualizamos pps para pasar de moic 1,39 a 2'],
+ ['Spotahome',46039,'eq',130000,130000,4075235.109718,0.0319,null,1,'EUR',null,0,'ampliacion 130k mismos terminos de ronda'],
+ ['Frekuent',46040,'eq',107592,107592,600,179.32,null,1,'EUR',null,0,'compra nero secundario pps 179,32'],
+ ['Frekuent',46040,'val',0,0,null,235.29,null,1,'EUR',null,0,'valoracion, post resgistrar secundario'],
+ ['Gopass',46059,'eq',500000,423944.38,142775.556825,3.502,25258436,1.1794,'USD',74000000,0,'Reconfirmar fd shares, 500 follow on'],
+ ['Dila IV',46078,'fund',45700,38804.45,null,610817.19,null,1.1777,'USD',null,0,'cc de 45,700 USD'],
+ ['Hero Seguros',46079,'eq',5194054.5,825854.67,612,8487.017157,23283,6.2893,'BRL',36500000,0,'306 acciones en primario 306 en secundario 8487,02 R$ , 1622,76udd'],
+ ['Bliss Saude',46084,'eq',750000,660002.11,5584512,0.1343,327611763,1.1364,'USD',40000000,0,'Preferentes Serie A'],
+ ['Urbanitae',46092,'sale',0,0,-58,1302.86,null,1,'EUR',null,75565.88,'venta urbanitae todo de golpe'],
+ ['Urbanitae',46094,'val',0,0,null,1140.01,null,1,'EUR',null,0,'pps val'],
+ ['Zig',46139,'eq',187000,158950.0,null,982543.99,null,1.1765,'USD',null,0,'apmpliacion safe']
 ];
- 
+
 const NAV_H = [
  {q:"Q2'22",s:44742,nav:12.49,called:0,mB:null,tB:null,tN:null},
  {q:"Q3'22",s:44834,nav:12.50,called:0,mB:null,tB:null,tN:null},
@@ -807,7 +909,7 @@ const NAV_H = [
  {q:"Q2'25",s:45838,nav:37.79,called:37.5,mB:1.23,tB:null,tN:null},
  {q:"Q3'25",s:45930,nav:49.79,called:37.5,mB:1.23,tB:null,tN:null},
 ];
- 
+
 // ════════════════════════════════════════════════════════════════
 // ENGINE
 // ════════════════════════════════════════════════════════════════
@@ -819,37 +921,47 @@ function getFx(s){
   for(let i=0;i<keys.length-1;i++)if(k>=keys[i]&&k<=keys[i+1])return(FX[keys[i]]+FX[keys[i+1]])/2;
   return 1.10;
 }
+function getFxBrl(s){
+  const k=mkKey(s),keys=Object.keys(FX_BRL).sort();
+  if(FX_BRL[k])return FX_BRL[k];
+  for(let i=0;i<keys.length-1;i++)if(k>=keys[i]&&k<=keys[i+1])return(FX_BRL[keys[i]]+FX_BRL[keys[i+1]])/2;
+  return 6.0;
+}
 function fmtD(s){const d=xlDate(s);return`${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;}
- 
+
 function calcPos(co,targetS,allTxns){
   const txns=(allTxns||getTxns()).filter(t=>t[0]===co&&t[1]<=targetS).sort((a,b)=>a[1]-b[1]);
   if(!txns.length)return null;
   const m=META[co]||['?','?','USD'];
-  const usd=m[2]==='USD';
+  const cur=m[2];
   let shares=0,costEur=0,procEur=0,lastPps=null,lastFd=null;
   let noteBalEur=0,noteBalLc=0,noteValOverride=null;
   let isWO=false,isExit=false,hasNote=false,isFund=false,fundNavLc=null;
+  let lastValFx=null; // FX usado en la última tx con pps (para BRL)
   for(const t of txns){
-    const[,s,type,lc,eur,sh,pps,fd,fx,cur,,proc]=t;
+    const[,s,type,lc,eur,sh,pps,fd,fx,tcur,,proc]=t;
     switch(type){
       case 'eq':case 'follow':
         shares+=(sh||0);costEur+=(eur||0);
-        if(pps!=null)lastPps=pps;if(fd)lastFd=fd;break;
+        if(pps!=null){lastPps=pps;lastValFx=fx||1;}
+        if(fd)lastFd=fd;break;
       case 'cn':
         hasNote=true;
         if(sh&&sh>0)shares+=sh;else if(sh&&sh<0)shares+=sh;
         noteBalEur+=(eur||0);noteBalLc+=(lc||0);costEur+=(eur||0);
-        if(pps!=null&&sh&&sh>0)lastPps=pps;if(fd)lastFd=fd;break;
+        if(pps!=null&&sh&&sh>0){lastPps=pps;lastValFx=fx||1;}
+        if(fd)lastFd=fd;break;
       case 'cc':
         hasNote=false;noteBalEur=0;noteBalLc=0;noteValOverride=null;
-        shares+=(sh||0);if(pps!=null)lastPps=pps;if(fd)lastFd=fd;break;
+        shares+=(sh||0);if(pps!=null){lastPps=pps;lastValFx=fx||1;}if(fd)lastFd=fd;break;
       case 'val':
         if(sh&&sh!==0){
           if(!hasNote||shares===0)shares+=(sh||0);
-          if(pps!=null)lastPps=pps;if(fd)lastFd=fd;noteValOverride=null;
+          if(pps!=null){lastPps=pps;lastValFx=fx||1;}
+          if(fd)lastFd=fd;noteValOverride=null;
         }else{
-          if(hasNote&&shares===0&&pps!=null)noteValOverride=pps;
-          else if(pps!=null)lastPps=pps;
+          if(hasNote&&shares===0&&pps!=null){noteValOverride=pps;lastValFx=fx||1;}
+          else if(pps!=null){lastPps=pps;lastValFx=fx||1;}
           if(fd)lastFd=fd;
         }break;
       case 'wo':
@@ -857,35 +969,51 @@ function calcPos(co,targetS,allTxns){
       case 'sale':
         procEur+=(proc||0);if(sh)shares+=sh;if(shares<=0){shares=0;isExit=true;}break;
       case 'fund':
-        isFund=true;costEur+=(eur||0);if(pps!=null)fundNavLc=pps;break;
+        isFund=true;costEur+=(eur||0);if(pps!=null){fundNavLc=pps;lastValFx=fx||1;}break;
       case 'dist':
-        procEur+=(proc||0);if(pps!=null)fundNavLc=pps;break;
+        procEur+=(proc||0);if(pps!=null){fundNavLc=pps;lastValFx=fx||1;}break;
     }
   }
-  const fxNow=getFx(targetS);
+  // ── MASTER MATCHING FX LOGIC ──
+  // El master usa la siguiente regla de valoración:
+  //  · EUR / USD positions: value_eur = shares × pps  (sin conversión, master convention)
+  //  · BRL positions: value_eur = shares × pps ÷ FX_de_la_transacción (frozen al invertir)
+  // Esto se consigue dividiendo por lastValFx solo si la posición es BRL.
+  const fxVal = cur==='BRL' ? (lastValFx||getFxBrl(targetS)) : 1;
   let valEur=0,statusCode='equity';
   if(isWO){valEur=0;statusCode='wo';}
-  else if(isExit&&shares===0){valEur=procEur;statusCode='exit';}
-  else if(isFund){statusCode='fund';valEur=fundNavLc!=null?(usd?fundNavLc/fxNow:fundNavLc):costEur;}
-  else if(hasNote&&shares===0&&noteValOverride!=null){statusCode='note';valEur=usd?noteValOverride/fxNow:noteValOverride;}
+  else if(isExit&&shares===0){valEur=0;statusCode='exit';} // proceeds tracked separately
+  else if(isFund){
+    statusCode='fund';
+    valEur=fundNavLc!=null?(fundNavLc/fxVal):costEur;
+  }
+  else if(hasNote&&shares===0&&noteValOverride!=null){
+    statusCode='note';
+    valEur=noteValOverride/fxVal;
+  }
   else if(shares>0&&lastPps!=null){
-    const lc=shares*lastPps;valEur=usd?lc/fxNow:lc;
-    if(hasNote&&shares===1&&noteBalEur>100000){const sn=usd?(noteBalLc-shares*lastPps)/fxNow:noteBalEur-shares*lastPps;if(sn>0)valEur+=sn;}
+    valEur=(shares*lastPps)/fxVal;
+    if(hasNote&&shares===1&&noteBalEur>100000){
+      const noteUsedLc=shares*lastPps;
+      const extraLc=noteBalLc-noteUsedLc;
+      if(extraLc>0) valEur += extraLc/fxVal;
+    }
     if(hasNote&&shares<=114)statusCode='note';
-  }else if(hasNote){statusCode='note';valEur=noteBalEur;}
+  }
+  else if(hasNote){statusCode='note';valEur=noteBalEur;}
   else if(shares>0&&lastPps===null){statusCode='equity';valEur=costEur;}
   const moic=costEur>0?(valEur+procEur)/costEur:0;
   const own=lastFd&&shares>0?shares/lastFd:null;
   const pnl=valEur+procEur-costEur;
-  return{co,country:m[0],sector:m[1],currency:m[2],costEur,valEur,procEur,pnl,moic,own,
-    shares,lastPps,lastFd,noteBalEur,noteValOverride,hasNote,isFund,isWO,isExit,statusCode,txCount:txns.length};
+  return{co,country:m[0],sector:m[1],currency:cur,costEur,valEur,procEur,pnl,moic,own,
+    shares,lastPps,lastFd,noteBalEur,noteValOverride,hasNote,isFund,isWO,isExit,statusCode,txCount:txns.length,fxVal};
 }
- 
+
 function getPortfolio(targetS){
   const txns=getTxns();
   return[...new Set(txns.map(t=>t[0]))].map(co=>calcPos(co,targetS,txns)).filter(p=>p&&(p.costEur>0||p.valEur>0));
 }
- 
+
 function xirr(amounts,serials){
   if(amounts.length<2||!amounts.some(a=>a>0)||!amounts.some(a=>a<0))return null;
   const d0=serials[0],dy=serials.map(s=>(s-d0)/365);
@@ -895,7 +1023,7 @@ function xirr(amounts,serials){
   for(let i=0;i<100;i++){const fr=f(r),dfr=df(r);if(Math.abs(dfr)<1e-14)break;const nr=r-fr/dfr;if(Math.abs(nr-r)<1e-10){r=nr;break;}r=Math.max(-0.999,Math.min(50,nr));}
   return isFinite(r)&&r>-1?r:null;
 }
- 
+
 function fundXirr(targetS){
   const txns=getTxns();const byDate={};
   txns.forEach(t=>{if(['eq','cn','fund','follow'].includes(t[2])&&t[4]>0)byDate[t[1]]=(byDate[t[1]]||0)+t[4];});
@@ -907,7 +1035,7 @@ function fundXirr(targetS){
   ams.push(tv);sers.push(targetS);
   return xirr(ams,sers);
 }
- 
+
 function coXirr(co,targetS){
   const txns=getTxns().filter(t=>t[0]===co);
   const ams=[],sers=[];
@@ -917,7 +1045,7 @@ function coXirr(co,targetS){
   ams.push(pos.valEur+pos.procEur);sers.push(targetS);
   return xirr(ams,sers);
 }
- 
+
 const fE=(n)=>n==null||isNaN(n)?'—':`€${Math.round(n).toLocaleString('es-ES')}`;
 const fEM=(n)=>n==null||isNaN(n)?'—':Math.abs(n)>=1e6?`€${(n/1e6).toFixed(1)}M`:Math.abs(n)>=1e3?`€${(n/1e3).toFixed(0)}k`:`€${Math.round(n)}`;
 const fM=(m)=>m==null||isNaN(m)?'—':`${m.toFixed(2)}x`;
@@ -931,13 +1059,13 @@ const gc=isDark?'rgba(255,255,255,.05)':'rgba(0,0,0,.05)';
 const tc=isDark?'rgba(255,255,255,.5)':'rgba(0,0,0,.4)';
 const charts={};
 function mkChart(id,type,data,opts){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),{type,data,options:opts});return charts[id];}
- 
+
 // ════════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════════
 let CY=2026,CM=3,selCo=null;
 function serial(y,m){return Math.round((new Date(Date.UTC(y,m,0)).getTime()/864e5)+25569);}
- 
+
 function buildDateSel(){
   const sM=document.getElementById('sM'),sY=document.getElementById('sY');
   MES.forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m;sM.appendChild(o);});
@@ -946,12 +1074,12 @@ function buildDateSel(){
   const ch=()=>{CM=+sM.value;CY=+sY.value;refresh();};
   sM.addEventListener('change',ch);sY.addEventListener('change',ch);
 }
- 
+
 function refresh(){
   const s=serial(CY,CM),pos=getPortfolio(s);
   renderBar(pos,s);renderPortfolio(pos,s);renderMetrics(pos,s);renderCoSel(pos,s);
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // VIEWS
 // ════════════════════════════════════════════════════════════════
@@ -965,7 +1093,7 @@ function renderBar(pos,s){
     ['FX',getFx(s).toFixed(4)],
   ].map(([l,v])=>`<div><div style="font-size:9px;color:var(--mu)">${l}</div><div style="font-weight:500">${v}</div></div>`).join('');
 }
- 
+
 function renderPortfolio(pos,s){
   const nav=pos.reduce((a,p)=>a+p.valEur,0);
   const cost=pos.reduce((a,p)=>a+p.costEur,0);
@@ -1007,7 +1135,7 @@ function renderPortfolio(pos,s){
   mkChart('gc','doughnut',{labels:ge.map(e=>e[0]),datasets:[{data:ge.map(e=>e[1]),backgroundColor:PAL,borderWidth:0}]},dopts);
   mkChart('sc','doughnut',{labels:se.map(e=>e[0]),datasets:[{data:se.map(e=>e[1]),backgroundColor:PAL,borderWidth:0}]},dopts);
 }
- 
+
 function renderMetrics(pos,s){
   const nav=pos.reduce((a,p)=>a+p.valEur,0);
   const cost=pos.reduce((a,p)=>a+p.costEur,0);
@@ -1045,7 +1173,7 @@ function renderMetrics(pos,s){
     {responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fEM(c.parsed)}`}}}});
   document.getElementById('ccleg').innerHTML=by.map((p,i)=>`<span style="display:flex;align-items:center;gap:3px"><span style="width:7px;height:7px;border-radius:2px;background:${PAL[i]};flex-shrink:0"></span>${p.co}</span>`).join('');
 }
- 
+
 function renderCoSel(pos,s){
   const q=(document.getElementById('cos').value||'').toLowerCase();
   const cf=document.getElementById('cof').value;
@@ -1063,7 +1191,7 @@ function renderCoSel(pos,s){
   if(selCo){const p=pos.find(x=>x.co===selCo);if(p)renderCoDet(p,s);}
 }
 function pickCo(co,s){selCo=co;const pos=getPortfolio(s);renderCoSel(pos,s);}
- 
+
 function renderCoDet(pos,s){
   const init=pos.co.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const colors=['#3266ad','#1d9e75','#ba7517','#993c1d','#534ab7','#d85a30'];
@@ -1119,7 +1247,7 @@ function renderCoDet(pos,s){
     </table></div>
   </div>`;
 }
- 
+
 function renderTxns(){
   const q=(document.getElementById('ts').value||'').toLowerCase();
   const tf=document.getElementById('tty').value;
@@ -1146,11 +1274,11 @@ function renderTxns(){
     </tr>`;
   }).join('');
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // TRANSACTION ENTRY FORM
 // ════════════════════════════════════════════════════════════════
- 
+
 const TYPES=[
   {id:'eq',icon:'◈',name:'Equity',desc:'Compra directa de acciones',fields:['shares','pps','fd','postmoney','notes']},
   {id:'cn',icon:'◇',name:'Nota convertible / SAFE',desc:'Préstamo con conversión futura',fields:['discount','cap','floor','maturity','interest','notes']},
@@ -1161,9 +1289,9 @@ const TYPES=[
   {id:'fund',icon:'◫',name:'Fondo — capital call',desc:'Aportación a fondo LP',fields:['fundnav','notes']},
   {id:'dist',icon:'←',name:'Fondo — distribución',desc:'Distribución recibida de fondo LP',fields:['proceeds','fundnav','notes']},
 ];
- 
+
 let fType=null;
- 
+
 function buildForm(){
   const sel=document.getElementById('fco');
   const cos=[...new Set(BASE_TXN.map(t=>t[0]))].sort();
@@ -1199,12 +1327,12 @@ function buildForm(){
   document.getElementById('fsave').addEventListener('click',saveTransaction);
   document.getElementById('freset').addEventListener('click',resetForm);
 }
- 
+
 function dateToSerial(dateStr){
   const d=new Date(dateStr+'T00:00:00Z');
   return Math.round((d.getTime()/864e5)+25569);
 }
- 
+
 function setFType(t){
   fType=t;
   document.querySelectorAll('.ftype-btn').forEach(b=>b.classList.toggle('sel',b.dataset.t===t));
@@ -1212,7 +1340,7 @@ function setFType(t){
   document.getElementById('ffields').style.display='block';
   onFormChange();
 }
- 
+
 const FIELD_HTML={
   shares:`<div class="fg"><label>Número de acciones adquiridas</label><input type="number" id="ff-shares" step="1" min="0" placeholder="ej: 50000"></div>`,
   pps:`<div class="fg"><label>PPS en moneda local</label><input type="number" id="ff-pps" step="any" placeholder="ej: 12.50"></div>`,
@@ -1228,14 +1356,14 @@ const FIELD_HTML={
   fundnav:`<div class="fg"><label>NAV del fondo a esta fecha (LC)</label><input type="number" id="ff-nav" step="any" placeholder="ej: 750000"></div>`,
   notes:`<div class="fg" style="grid-column:1/-1"><label>Notas / términos</label><textarea id="ff-notes" rows="2" placeholder="Términos relevantes, rationale…"></textarea></div>`,
 };
- 
+
 const AMOUNT_HTML=`
   <div class="fgrid w3">
     <div class="fg"><label>Importe en moneda local (LC)</label><input type="number" id="ff-lc" step="any" min="0" placeholder="ej: 1000000" oninput="autoCalcEur()"></div>
     <div class="fg"><label>Importe en EUR</label><input type="number" id="ff-eur" step="any" min="0" placeholder="ej: 950000" oninput="autoCalcLc()"></div>
     <div class="fg"><label>¿Auto-calcular?</label><select id="ff-auto"><option value="eur">Calcular EUR desde LC</option><option value="lc">Calcular LC desde EUR</option><option value="none">Manual</option></select></div>
   </div>`;
- 
+
 function renderDynFields(t){
   const cfg=TYPES.find(x=>x.id===t);
   if(!cfg)return;
@@ -1253,7 +1381,7 @@ function renderDynFields(t){
   });
   autoCalcEur();onFormChange();
 }
- 
+
 function autoCalcEur(){
   const lc=parseFloat(document.getElementById('ff-lc')?.value);
   const fx=parseFloat(document.getElementById('ffx').value)||getFx(dateToSerial(document.getElementById('fdate').value||new Date().toISOString().slice(0,10)));
@@ -1266,7 +1394,7 @@ function autoCalcEur(){
   if(sh&&lc&&document.getElementById('ff-pps'))document.getElementById('ff-pps').value=(lc/sh).toFixed(6);
   onFormChange();
 }
- 
+
 function autoCalcLc(){
   const eur=parseFloat(document.getElementById('ff-eur')?.value);
   const fx=parseFloat(document.getElementById('ffx').value)||getFx(serial(CY,CM));
@@ -1277,10 +1405,10 @@ function autoCalcLc(){
   if(document.getElementById('ff-lc'))document.getElementById('ff-lc').value=lc.toFixed(2);
   onFormChange();
 }
- 
+
 function getVal(id){const e=document.getElementById(id);return e?e.value:null;}
 function getNum(id){return parseFloat(getVal(id))||null;}
- 
+
 function onFormChange(){
   if(!fType)return;
   const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
@@ -1323,7 +1451,7 @@ function onFormChange(){
   document.getElementById('fprevtable').innerHTML=`<table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>`;
   prev.style.display=rows.length>2?'block':'none';
 }
- 
+
 function validateForm(){
   const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
   const date=getVal('fdate');
@@ -1338,7 +1466,7 @@ function validateForm(){
   if(fType==='sale'&&!proc)errs.push('Introduce los proceeds de la venta');
   return errs;
 }
- 
+
 async function saveTransaction(){
   const errs=validateForm();
   const errEl=document.getElementById('ferr');
@@ -1346,7 +1474,7 @@ async function saveTransaction(){
   const saveBtn=document.getElementById('fsave');
   if(errs.length){errEl.textContent=errs.join(' · ');errEl.classList.add('show');return;}
   errEl.classList.remove('show');
- 
+
   const co=getVal('fco')==='__new__'?getVal('fnewco'):getVal('fco');
   const date=getVal('fdate');
   const cur=getVal('fcur')||'EUR';
@@ -1366,7 +1494,7 @@ async function saveTransaction(){
   const lcVal=fType==='dist'?0:lc;
   const eurVal=fType==='dist'?0:eur;
   const txn=[co,s,fType,lcVal,eurVal,sh,ppsVal,fd,cur==='USD'?fx:1,cur,pm,proc,notes];
- 
+
   // Añadir a META si es empresa nueva
   if(!META[co]){
     const country=prompt(`País de ${co}:`,'España')||'?';
@@ -1375,16 +1503,16 @@ async function saveTransaction(){
     // Actualizar el selector de empresa para futuros usos
     refreshTxnSel(co);
   }
- 
+
   // Guardar en Firestore (o en memoria si no hay conexión)
   saveBtn.disabled=true;
   saveBtn.textContent='Guardando…';
- 
+
   const result=await writeToFirestore(txn);
- 
+
   saveBtn.disabled=false;
   saveBtn.textContent='Guardar en Firestore';
- 
+
   if(result.ok){
     const where=result.local?'(sin conexión — solo local)':'en Firestore ✓';
     okEl.textContent=`Guardado ${where}: ${co} — ${TYPES.find(t=>t.id===fType)?.name} — ${fmtD(s)}`;
@@ -1396,7 +1524,7 @@ async function saveTransaction(){
     errEl.classList.add('show');
   }
 }
- 
+
 function refreshTxnSel(co){
   const sel=document.getElementById('fco');
   if(![...sel.options].some(o=>o.value===co)){
@@ -1404,7 +1532,7 @@ function refreshTxnSel(co){
     sel.insertBefore(o,sel.lastElementChild);
   }
 }
- 
+
 function resetForm(){
   fType=null;
   document.querySelectorAll('.ftype-btn').forEach(b=>b.classList.remove('sel'));
@@ -1420,7 +1548,7 @@ function resetForm(){
   document.getElementById('ffx').value='';
   document.getElementById('ffx').parentElement.style.display='none';
 }
- 
+
 // ════════════════════════════════════════════════════════════════
 // EVENTS & BOOT
 // ════════════════════════════════════════════════════════════════
@@ -1433,14 +1561,14 @@ document.querySelectorAll('.nb[data-v]').forEach(btn=>{
     if(btn.dataset.v==='transactions')renderTxns();
   });
 });
- 
+
 document.getElementById('ps').addEventListener('input',()=>renderPortfolio(getPortfolio(serial(CY,CM)),serial(CY,CM)));
 document.getElementById('pf').addEventListener('change',()=>renderPortfolio(getPortfolio(serial(CY,CM)),serial(CY,CM)));
 document.getElementById('ts').addEventListener('input',renderTxns);
 document.getElementById('tty').addEventListener('change',renderTxns);
 document.getElementById('cos').addEventListener('input',()=>{const s=serial(CY,CM);renderCoSel(getPortfolio(s),s);});
 document.getElementById('cof').addEventListener('change',()=>{const s=serial(CY,CM);renderCoSel(getPortfolio(s),s);});
- 
+
 // ARRANQUE
 buildDateSel();
 buildForm();
